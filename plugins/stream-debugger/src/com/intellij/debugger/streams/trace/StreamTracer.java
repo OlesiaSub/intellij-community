@@ -2,11 +2,15 @@
 package com.intellij.debugger.streams.trace;
 
 import com.intellij.debugger.streams.wrapper.StreamChain;
+import com.intellij.psi.PsiMethod;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 /**
  * @author Vitaliy.Bibaev
  */
 public interface StreamTracer {
-  void trace(@NotNull StreamChain chain, @NotNull TracingCallback callback);
+  //void trace(@NotNull StreamChain chain, @NotNull TracingCallback callback);
+  void trace(@NotNull StreamChain chain, @NotNull TracingCallback callback, @NotNull List<PsiMethod> chainReferences);
 }

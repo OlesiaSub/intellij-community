@@ -255,7 +255,6 @@ public class BreakpointManager {
   @Nullable
   public MethodBreakpoint addMethodBreakpoint(Document document, int lineIndex) {
     ApplicationManager.getApplication().assertIsDispatchThread();
-
     XLineBreakpoint xBreakpoint = addXLineBreakpoint(JavaMethodBreakpointType.class, document, lineIndex);
     Breakpoint javaBreakpoint = getJavaBreakpoint(xBreakpoint);
     if (javaBreakpoint instanceof MethodBreakpoint) {

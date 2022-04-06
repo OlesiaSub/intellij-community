@@ -25,6 +25,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiMethod;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XSourcePosition;
@@ -82,15 +83,16 @@ public final class TraceStreamAction extends AnAction {
       LOG.info("element at cursor not found");
       return;
     }
-
     List<ChainResolver.StreamChainWithLibrary> chains = CHAIN_RESOLVER.getChains(element);
+    // MINE got all chains, they were built above
+    List<List<PsiMethod>> chainReferences = CHAIN_RESOLVER.getChainsReferences(element);
     if (chains.isEmpty()) {
       LOG.warn("stream chain is not built");
       return;
     }
 
     if (chains.size() == 1) {
-      runTrace(chains.get(0).chain, chains.get(0).provider, session);
+      runTrace(chains.get(0).chain, chains.get(0).provider, session, chainReferences.get(0));
     }
     else {
       Project project = session.getProject();
@@ -100,12 +102,12 @@ public final class TraceStreamAction extends AnAction {
       ApplicationManager.getApplication()
         .invokeLater(() -> {
           new MyStreamChainChooser(editor).show(ContainerUtil.map(chains, StreamChainOption::new),
-                                                provider -> runTrace(provider.chain, provider.provider, session));
+                                                provider -> runTrace(provider.chain, provider.provider, session, chainReferences.get(0))); // TODO replace get(0) with all
         });
     }
   }
 
-  private static void runTrace(@NotNull StreamChain chain, @NotNull LibrarySupportProvider provider, @NotNull XDebugSession session) {
+  private static void runTrace(@NotNull StreamChain chain, @NotNull LibrarySupportProvider provider, @NotNull XDebugSession session, @NotNull List<PsiMethod> chainReferences) {
     final EvaluationAwareTraceWindow window = new EvaluationAwareTraceWindow(session, chain);
     ApplicationManager.getApplication().invokeLater(window::show);
     final Project project = session.getProject();
@@ -135,7 +137,7 @@ public final class TraceStreamAction extends AnAction {
       private void notifyUI(@NotNull @Nls String message) {
         ApplicationManager.getApplication().invokeLater(() -> window.setFailMessage(message));
       }
-    });
+    }, chainReferences);
   }
 
   private static final class MyStreamChainChooser extends ElementChooserImpl<StreamChainOption> {

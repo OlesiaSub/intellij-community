@@ -56,6 +56,29 @@ public class JavaStreamChainBuilder implements StreamChainBuilder {
     return buildChains(chains, startElement);
   }
 
+  // mine
+  @Override
+  public @NotNull List<List<PsiMethod>> buildReferences(@NotNull PsiElement startElement) {
+    final MyChainCollectorVisitor visitor = new MyChainCollectorVisitor();
+
+    PsiElement current = getLatestElementInCurrentScope(PsiUtil.ignoreWhiteSpaces(startElement));
+    while (current != null) {
+      current.accept(visitor);
+      current = toUpperLevel(current);
+    }
+
+    final List<List<PsiMethodCallExpression>> chains = visitor.getPsiChains();
+    List<List<PsiMethod>> references = new ArrayList<>();
+    chains.forEach(chain -> {
+      List<PsiMethod> chainReferences = new ArrayList<>();
+      chain.forEach(e -> {
+        chainReferences.add(e.resolveMethod());
+      });
+      references.add(chainReferences);
+    });
+    return references;
+  }
+
   @Nullable
   private static PsiElement toUpperLevel(@NotNull PsiElement element) {
     element = element.getParent();

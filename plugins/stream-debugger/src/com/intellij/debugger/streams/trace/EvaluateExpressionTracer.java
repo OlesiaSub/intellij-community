@@ -1,12 +1,21 @@
 // Copyright 2000-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.intellij.debugger.streams.trace;
 
+import com.intellij.debugger.DebuggerManagerEx;
+import com.intellij.debugger.engine.DebugProcessImpl;
+import com.intellij.debugger.engine.JavaStackFrame;
 import com.intellij.debugger.engine.JavaValue;
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl;
 import com.intellij.debugger.streams.StreamDebuggerBundle;
+import com.intellij.debugger.streams.breakpoints.BreakpointSetter;
+import com.intellij.debugger.streams.breakpoints.MethodExitProcessor;
 import com.intellij.debugger.streams.wrapper.StreamChain;
-import com.intellij.psi.CommonClassNames;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.psi.*;
+import com.intellij.psi.impl.PsiManagerImpl;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.xdebugger.XDebugSession;
+import com.intellij.xdebugger.XDebugSessionListener;
 import com.intellij.xdebugger.evaluation.EvaluationMode;
 import com.intellij.xdebugger.evaluation.XDebuggerEvaluator;
 import com.intellij.xdebugger.frame.XStackFrame;
@@ -16,6 +25,10 @@ import com.intellij.xdebugger.impl.ui.tree.nodes.XEvaluationCallbackBase;
 import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author Vitaliy.Bibaev
@@ -33,10 +46,69 @@ public class EvaluateExpressionTracer implements StreamTracer {
     myResultInterpreter = interpreter;
   }
 
-  @Override
-  public void trace(@NotNull StreamChain chain, @NotNull TracingCallback callback) {
-    final String streamTraceExpression = myExpressionBuilder.createTraceExpression(chain);
+  public void traverseBreakpoints(@NotNull List<PsiMethod> chainReferences, StreamChain chain) {
+    BreakpointSetter bs = new BreakpointSetter(mySession.getProject());
 
+    // for testing
+    var file = chain.getContext().getContainingFile();
+    Visitor v = new Visitor();
+    file.accept(v);
+    var methods = v.getPsiMethods();
+    for (var m : methods) {
+      int offset = m.getTextOffset();
+      bs.setBreakpoint(m.getContainingFile(), offset);
+    }
+
+
+    // setting all bps to actual stream methods
+    //for (int i = 0; i < chainReferences.toArray().length; i++) {
+    //  int offset = chainReferences.get(i).getTextOffset();
+    //  bs.setBreakpoint(chainReferences.get(i).getContainingFile(), offset);
+    //}
+    mySession.getDebugProcess().resume(mySession.getSuspendContext());
+
+    mySession.addSessionListener(new XDebugSessionListener() {
+      @Override
+      public void sessionPaused() {
+        ApplicationManager.getApplication().invokeLater(() -> {
+          final JavaStackFrame stackFrame = (JavaStackFrame) mySession.getCurrentStackFrame();
+          assert stackFrame != null;
+          MethodExitProcessor methodExitProcessor = new MethodExitProcessor((DebugProcessImpl) stackFrame.getDescriptor().getDebugProcess(), stackFrame);
+          PsiManager m = new PsiManagerImpl(mySession.getProject());
+          assert stackFrame.getSourcePosition() != null;
+          var r = m.findFile(stackFrame.getSourcePosition().getFile());
+          assert r != null;
+          methodExitProcessor.mainFun(r);
+          mySession.getDebugProcess().resume(mySession.getSuspendContext());
+        });
+      }
+    });
+  }
+
+  public class Visitor extends PsiRecursiveElementVisitor {
+
+    private Set<PsiMethod> psiMethods = new HashSet<>();
+
+    @Override
+    public void visitElement(PsiElement element) {
+
+      if (element instanceof PsiMethod) {
+        psiMethods.add((PsiMethod) element);
+      }
+
+      super.visitElement(element);
+    }
+
+    public Set<PsiMethod> getPsiMethods() {
+      return psiMethods;
+    }
+  }
+
+  @Override
+  public void trace(@NotNull StreamChain chain, @NotNull TracingCallback callback, @NotNull List<PsiMethod> chainReferences) {
+    traverseBreakpoints(chainReferences, chain);
+    if (true) return;
+    final String streamTraceExpression = myExpressionBuilder.createTraceExpression(chain);
     final XStackFrame stackFrame = mySession.getCurrentStackFrame();
     final XDebuggerEvaluator evaluator = mySession.getDebugProcess().getEvaluator();
     if (stackFrame != null && evaluator != null) {
