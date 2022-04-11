@@ -50,21 +50,21 @@ public class EvaluateExpressionTracer implements StreamTracer {
     BreakpointSetter bs = new BreakpointSetter(mySession.getProject());
 
     // for testing
-    var file = chain.getContext().getContainingFile();
-    Visitor v = new Visitor();
-    file.accept(v);
-    var methods = v.getPsiMethods();
-    for (var m : methods) {
-      int offset = m.getTextOffset();
-      bs.setBreakpoint(m.getContainingFile(), offset);
-    }
+    //var file = chain.getContext().getContainingFile();
+    //Visitor v = new Visitor();
+    //file.accept(v);
+    //var methods = v.getPsiMethods();
+    //for (var m : methods) {
+    //  int offset = m.getTextOffset();
+    //  bs.setBreakpoint(m.getContainingFile(), offset);
+    //}
 
 
     // setting all bps to actual stream methods
-    //for (int i = 0; i < chainReferences.toArray().length; i++) {
-    //  int offset = chainReferences.get(i).getTextOffset();
-    //  bs.setBreakpoint(chainReferences.get(i).getContainingFile(), offset);
-    //}
+    for (int i = 0; i < chainReferences.toArray().length; i++) {
+      int offset = chainReferences.get(i).getTextOffset();
+      bs.setBreakpoint(chainReferences.get(i).getContainingFile(), offset);
+    }
     mySession.getDebugProcess().resume(mySession.getSuspendContext());
 
     mySession.addSessionListener(new XDebugSessionListener() {
@@ -73,12 +73,10 @@ public class EvaluateExpressionTracer implements StreamTracer {
         ApplicationManager.getApplication().invokeLater(() -> {
           final JavaStackFrame stackFrame = (JavaStackFrame) mySession.getCurrentStackFrame();
           assert stackFrame != null;
-          MethodExitProcessor methodExitProcessor = new MethodExitProcessor((DebugProcessImpl) stackFrame.getDescriptor().getDebugProcess(), stackFrame);
           PsiManager m = new PsiManagerImpl(mySession.getProject());
           assert stackFrame.getSourcePosition() != null;
           var r = m.findFile(stackFrame.getSourcePosition().getFile());
           assert r != null;
-          methodExitProcessor.mainFun(r);
           mySession.getDebugProcess().resume(mySession.getSuspendContext());
         });
       }

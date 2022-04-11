@@ -341,28 +341,6 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
 
   @Override
   public String getEventMessage(@NotNull LocatableEvent event) {
-    if (event instanceof MethodExitEvent) {
-      Value returnValue = ((MethodExitEvent)event).returnValue();
-      if (returnValue instanceof ObjectReference) {
-        if (((MethodExitEvent)event).method().name().equals("doSomething")) {
-          ApplicationManager.getApplication().invokeLater(() -> {
-            try {
-              var ret = ((ObjectReference)returnValue)
-                .invokeMethod(event.thread(),
-                              ((ObjectReference)returnValue).referenceType().methodsByName("hehe").get(0),
-                              List.of(returnValue),
-                              0);
-              System.out.println("Returned value " + ret);
-            }
-            catch (Exception e) {
-              e.printStackTrace();
-            }
-          });
-        }
-      }
-      System.out.println("Method " + ((MethodExitEvent)event).method());
-      System.out.println("Ret value " + ((MethodExitEvent)event).returnValue());
-    }
     return getEventMessage(event, getFileName());
   }
 
