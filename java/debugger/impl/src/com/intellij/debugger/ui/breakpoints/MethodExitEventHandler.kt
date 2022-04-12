@@ -15,10 +15,6 @@ import com.sun.jdi.event.MethodExitEvent
 
 class MethodExitEventHandler {
 
-  companion object {
-    private val map = mutableMapOf<Method, Boolean>()
-  }
-
     // пока не использую (не могу загрузить класс, скорее всего из-за проблем с classpath), код взяла в каком-то из файлов дебаггера
     @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
             InvalidTypeException::class, EvaluateException::class)
@@ -75,12 +71,6 @@ class MethodExitEventHandler {
     fun handleMethodExitEvent(event: MethodExitEvent) {
       val returnValue = event.returnValue()
       if (returnValue is ObjectReference) {
-        if (map.contains(event.method())) {
-          return
-        }
-        else {
-          map.put(event.method(), true)
-        }
         ApplicationManager.getApplication().invokeLater {
           try {
             // Consumer consumerr есть в коде проекта, на котором я тестирую
@@ -92,6 +82,7 @@ class MethodExitEventHandler {
                             listOf(fieldValue),
                             0)
             event.thread().forceEarlyReturn(ret)
+            event.request().disable()
           }
           catch (e: Exception) {
             e.printStackTrace()

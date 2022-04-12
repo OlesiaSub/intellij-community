@@ -10,6 +10,8 @@ import com.intellij.debugger.streams.StreamDebuggerBundle;
 import com.intellij.debugger.streams.breakpoints.BreakpointSetter;
 import com.intellij.debugger.streams.breakpoints.MethodExitProcessor;
 import com.intellij.debugger.streams.wrapper.StreamChain;
+import com.intellij.debugger.ui.breakpoints.BreakpointManager;
+import com.intellij.debugger.ui.breakpoints.MethodBreakpoint;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.PsiManagerImpl;
@@ -26,9 +28,7 @@ import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Vitaliy.Bibaev
@@ -61,17 +61,19 @@ public class EvaluateExpressionTracer implements StreamTracer {
 
 
     // setting all bps to actual stream methods
+
     for (int i = 0; i < chainReferences.toArray().length; i++) {
       int offset = chainReferences.get(i).getTextOffset();
-      bs.setBreakpoint(chainReferences.get(i).getContainingFile(), offset);
+      MethodBreakpoint bp = bs.setBreakpoint(chainReferences.get(i).getContainingFile(), offset);
     }
     mySession.getDebugProcess().resume(mySession.getSuspendContext());
+    BreakpointManager breakpointManager = DebuggerManagerEx.getInstanceEx(chainReferences.get(0).getProject()).getBreakpointManager();
 
     mySession.addSessionListener(new XDebugSessionListener() {
       @Override
       public void sessionPaused() {
         ApplicationManager.getApplication().invokeLater(() -> {
-          final JavaStackFrame stackFrame = (JavaStackFrame) mySession.getCurrentStackFrame();
+          final JavaStackFrame stackFrame = (JavaStackFrame)mySession.getCurrentStackFrame();
           assert stackFrame != null;
           PsiManager m = new PsiManagerImpl(mySession.getProject());
           assert stackFrame.getSourcePosition() != null;
@@ -83,7 +85,8 @@ public class EvaluateExpressionTracer implements StreamTracer {
     });
   }
 
-  public class Visitor extends PsiRecursiveElementVisitor {
+  // for testing
+  private class Visitor extends PsiRecursiveElementVisitor {
 
     private Set<PsiMethod> psiMethods = new HashSet<>();
 
@@ -91,7 +94,7 @@ public class EvaluateExpressionTracer implements StreamTracer {
     public void visitElement(PsiElement element) {
 
       if (element instanceof PsiMethod) {
-        psiMethods.add((PsiMethod) element);
+        psiMethods.add((PsiMethod)element);
       }
 
       super.visitElement(element);

@@ -5,6 +5,7 @@ import com.intellij.debugger.DebuggerInvocationUtil
 import com.intellij.debugger.DebuggerManagerEx
 import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.ui.breakpoints.BreakpointManager
+import com.intellij.debugger.ui.breakpoints.MethodBreakpoint
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
@@ -16,13 +17,19 @@ import javax.swing.SwingUtilities
 
 
 class BreakpointSetter(private val project: Project) {
-  fun setBreakpoint(currentFile: PsiFile, offset: Int) {
-    val document = runReadAction { PsiDocumentManager.getInstance(project).getDocument(currentFile) } ?: return
+
+  val breakpoints: MutableList<MethodBreakpoint> = mutableListOf()
+
+  fun setBreakpoint(currentFile: PsiFile, offset: Int): MethodBreakpoint? {
+    val document = runReadAction { PsiDocumentManager.getInstance(project).getDocument(currentFile) } ?: return null
+    var bp : MethodBreakpoint? = null
     val runnable = {
       val lineIndex = document.getLineNumber(offset)
-      val debuggerManager = DebuggerManagerEx.getInstance(project)
       val bpManager = DebuggerManagerEx.getInstanceEx(project).getBreakpointManager()
-      createMethodBreakpoint(bpManager, lineIndex, document)
+      bp = createMethodBreakpoint(bpManager, lineIndex, document)
+      if (bp != null) {
+        breakpoints.add(bp!!)
+      }
     }
 
     if (!SwingUtilities.isEventDispatchThread()) {
@@ -31,17 +38,20 @@ class BreakpointSetter(private val project: Project) {
     else {
       runnable.invoke()
     }
+
+    return bp
   }
 
-  private fun createMethodBreakpoint(breakpointManager: BreakpointManager, lineIndex: Int, document: Document) {
+  private fun createMethodBreakpoint(breakpointManager: BreakpointManager, lineIndex: Int, document: Document) : MethodBreakpoint? {
+    var bp : MethodBreakpoint? = null
     runWriteAction {
-      val bp = breakpointManager.addMethodBreakpoint(document, lineIndex)
+      bp = breakpointManager.addMethodBreakpoint(document, lineIndex)
       bp?.xBreakpoint?.properties?.WATCH_EXIT = true
       bp?.xBreakpoint?.properties?.EMULATED = false
     }
+    return bp
   }
 
-  //@Suppress("UNCHECKED_CAST")
   //private inline fun <reified T : XBreakpointType<*, *>> findBreakpointType(javaClass: Class<T>): XLineBreakpointType<XBreakpointProperties<*>> =
   //  XDebuggerUtil.getInstance().findBreakpointType(javaClass) as XLineBreakpointType<XBreakpointProperties<*>>
 
