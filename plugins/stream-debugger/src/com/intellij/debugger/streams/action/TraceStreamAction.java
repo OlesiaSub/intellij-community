@@ -2,6 +2,7 @@
 package com.intellij.debugger.streams.action;
 
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl;
+import com.intellij.debugger.streams.breakpoints.BreakpointBasedStreamTracer;
 import com.intellij.debugger.streams.diagnostic.ex.TraceCompilationException;
 import com.intellij.debugger.streams.diagnostic.ex.TraceEvaluationException;
 import com.intellij.debugger.streams.lib.LibrarySupportProvider;
@@ -113,7 +114,8 @@ public final class TraceStreamAction extends AnAction {
     final Project project = session.getProject();
     final TraceExpressionBuilder expressionBuilder = provider.getExpressionBuilder(project);
     final TraceResultInterpreterImpl resultInterpreter = new TraceResultInterpreterImpl(provider.getLibrarySupport().getInterpreterFactory());
-    final StreamTracer tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
+    //final StreamTracer tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
+    final StreamTracer tracer = new BreakpointBasedStreamTracer(session, chainReferences);
     tracer.trace(chain, new TracingCallback() {
       @Override
       public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {
@@ -137,7 +139,7 @@ public final class TraceStreamAction extends AnAction {
       private void notifyUI(@NotNull @Nls String message) {
         ApplicationManager.getApplication().invokeLater(() -> window.setFailMessage(message));
       }
-    }, chainReferences);
+    });
   }
 
   private static final class MyStreamChainChooser extends ElementChooserImpl<StreamChainOption> {

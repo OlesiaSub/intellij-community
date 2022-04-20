@@ -15,7 +15,6 @@ import com.intellij.debugger.requests.Requestor;
 import com.intellij.debugger.settings.DebuggerSettings;
 import com.intellij.debugger.ui.breakpoints.Breakpoint;
 import com.intellij.debugger.ui.breakpoints.InstrumentationTracker;
-import com.intellij.debugger.ui.breakpoints.MethodExitEventHandler;
 import com.intellij.debugger.ui.breakpoints.StackCapturingLineBreakpoint;
 import com.intellij.debugger.ui.overhead.OverheadProducer;
 import com.intellij.debugger.ui.overhead.OverheadTimings;
@@ -684,11 +683,6 @@ public class DebugProcessEvents extends DebugProcessImpl {
           //  myBreakpointManager.applyThreadFilter(DebugProcessEvents.this, event.thread());
           //}
           suspendManager.voteSuspend(suspendContext);
-          // mine
-          MethodExitEventHandler methodExitEventHandler = new MethodExitEventHandler();
-          if (event instanceof MethodExitEvent) {
-            methodExitEventHandler.handleMethodExitEvent((MethodExitEvent)event);
-          }
           showStatusText(DebugProcessEvents.this, event);
         }
       }

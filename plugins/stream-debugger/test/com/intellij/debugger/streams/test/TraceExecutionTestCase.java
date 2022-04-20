@@ -166,7 +166,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
             LOG.warn("[" + getTestName(false) + "] Compilation failed.");
             complete(chain, null, message, FailureReason.COMPILATION);
           }
-        }, new ArrayList<>()); // todo mine
+        });
       }
 
       private void complete(@Nullable StreamChain chain,
