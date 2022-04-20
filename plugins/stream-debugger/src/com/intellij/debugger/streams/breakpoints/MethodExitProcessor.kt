@@ -53,27 +53,6 @@ class MethodExitProcessor(private val myDebugProcess: DebugProcessImpl, private 
     }
   }
 
-  fun shit(file: PsiFile, myVm: VirtualMachineProxyImpl, virtualMachineProxy: VirtualMachineProxyImpl) {
-    //val myVm = DebugProcessEvents(file.project).virtualMachineProxy
-    //val myVm = myDebugProcess.virtualMachineProxy.virtualMachine
-    myVm.resume()
-    println("my vm is $myVm")
-    println("here ${myVm.eventQueue()}")
-    println("here 1 ${myVm.eventQueue().remove()}")
-    val eventSet: EventSet? = myVm.eventQueue().remove()
-    if (eventSet == null || eventSet.isEmpty()) return
-    println("before passed")
-    eventSet.forEach { println(it) }
-    println("passed")
-    for (event in eventSet) {
-      println("event ${event.toString()}")
-      if (event is MethodExitEvent) {
-        println("ret val ${event.returnValue()}")
-      }
-      myVm.resume()
-    }
-  }
-
   fun mainFun(file: PsiFile) {
     DebuggerManagerThreadImpl.assertIsManagerThread()
     val v = Visitor()
