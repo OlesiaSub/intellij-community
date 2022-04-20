@@ -7,6 +7,8 @@ import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.ClassLoadingUtils
 import com.intellij.debugger.impl.PrioritizedTask
+import com.intellij.debugger.memory.agent.IdeaNativeAgentProxyMirror
+import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.CommonClassNames
 import com.intellij.util.containers.ContainerUtil
@@ -18,6 +20,8 @@ import com.sun.jdi.event.MethodExitEvent
 class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
                          private val process: DebugProcessImpl,
                          private val stackFrame: JavaStackFrame) {
+
+  private val className = "com.intellij.debugger.streams.breakpoints.MyConsumerTest"
 
   @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
           InvalidTypeException::class, EvaluateException::class)
@@ -42,6 +46,8 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
         override fun threadAction(suspendContext: SuspendContextImpl) {
           classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
           val bytes = ConsumerExtractor().extractConsumer()
+          //contextImpl.suspendContext.doNotResumeHack()
+
           ClassLoadingUtils.defineClass("com.intellij.debugger.streams.breakpoints.MyConsumerTest", bytes, contextImpl, process,
                                         classLoader)
           args.add(virtualMachine.mirrorOf(qName))
@@ -93,5 +99,43 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
       buffer.append(';')
     }
     return buffer.toString()
+  }
+
+  @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
+          InvalidTypeException::class, EvaluateException::class)
+  fun loadClass(): ClassLoaderReference? {
+    try {
+      val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
+      val bytes = ConsumerExtractor().extractConsumer()
+      ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
+      val debugProcess = contextImpl.debugProcess
+      debugProcess.loadClass(contextImpl, className, classLoader)
+      println("classes @")
+      classLoader.definedClasses().forEach { println(it) }
+      return classLoader
+      //process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
+      //                                                                   stackFrame.stackFrameProxy.threadProxy()) {
+      //  override fun getPriority(): PrioritizedTask.Priority {
+      //    return PrioritizedTask.Priority.HIGH
+      //  }
+      //
+      //  override fun threadAction(suspendContext: SuspendContextImpl) {
+      //    //val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
+      //    //val bytes = ConsumerExtractor().extractConsumer()
+      //    //ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
+      //    //val debugProcess = contextImpl.debugProcess
+      //    //debugProcess.loadClass(contextImpl, className, classLoader)
+      //    //println("classes @")
+      //    //classLoader.definedClasses().forEach { println(it) }
+      //  }
+      //})
+    }
+    catch (e: VMDisconnectedException) {
+      println("Virtual Machine is disconnected.")
+    }
+    catch (e: Exception) {
+      e.printStackTrace()
+    }
+    return null
   }
 }

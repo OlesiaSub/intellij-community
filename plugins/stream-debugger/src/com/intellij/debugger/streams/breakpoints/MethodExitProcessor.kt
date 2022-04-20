@@ -33,7 +33,6 @@ class MethodExitProcessor(private val myDebugProcess: DebugProcessImpl, private 
     classPrepareRequest.addClassFilter(debugClass ?: return)
     classPrepareRequest.enable()
     classPrepareRequest.setEnabled(true)
-    println("enabled? ${classPrepareRequest.isEnabled}")
     classPrepareRequest.isEnabled
     val methodExitRequest: MethodExitRequest = vm.eventRequestManager().createMethodExitRequest()
     methodExitRequest.addClassFilter(debugClass)
