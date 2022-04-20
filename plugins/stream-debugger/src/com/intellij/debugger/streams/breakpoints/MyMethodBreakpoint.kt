@@ -43,7 +43,7 @@ class MyMethodBreakpoint(project: Project,
         // class loading
         var field: Field
         var fieldValue: Value? = null
-        val classLoadingUtil = CustomClassLoadingUtil(contextImpl, (stackFrame.descriptor.debugProcess as DebugProcessImpl), stackFrame)
+        val classLoadingUtil = MyClassLoadingUtil(contextImpl, (stackFrame.descriptor.debugProcess as DebugProcessImpl), stackFrame)
         val loader = classLoadingUtil.loadClass("com.intellij.debugger.streams.breakpoints.MyConsumerTest", event)
         println("DEBUG classes")
         if (loader == null) return@runnable

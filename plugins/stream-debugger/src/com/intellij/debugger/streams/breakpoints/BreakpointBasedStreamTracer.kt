@@ -22,7 +22,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession, private 
 
   private fun traverseBreakpoints() {
     val stackFrame = (mySession.getCurrentStackFrame() as JavaStackFrame)
-    val cimpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl, (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
+    val cimpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
+                                      (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
     val bs = BreakpointSetter(mySession.getProject(),
                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                               (mySession.getCurrentStackFrame() as JavaStackFrame), cimpl)

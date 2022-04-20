@@ -15,9 +15,9 @@ import com.jetbrains.jdi.MethodImpl
 import com.sun.jdi.*
 import com.sun.jdi.event.MethodExitEvent
 
-class CustomClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
-                             private val process: DebugProcessImpl,
-                             private val stackFrame: JavaStackFrame) {
+class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
+                         private val process: DebugProcessImpl,
+                         private val stackFrame: JavaStackFrame) {
 
   @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
           InvalidTypeException::class, EvaluateException::class)
@@ -42,10 +42,12 @@ class CustomClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
         override fun threadAction(suspendContext: SuspendContextImpl) {
           classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
           val bytes = ConsumerExtractor().extractConsumer()
-          ClassLoadingUtils.defineClass("com.intellij.debugger.streams.breakpoints.MyConsumerTest", bytes, contextImpl, process, classLoader)
+          ClassLoadingUtils.defineClass("com.intellij.debugger.streams.breakpoints.MyConsumerTest", bytes, contextImpl, process,
+                                        classLoader)
           args.add(virtualMachine.mirrorOf(qName))
           if (classLoader != null) {
-            forNameMethod = DebuggerUtils.findMethod(classClassType, "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;")
+            forNameMethod = DebuggerUtils.findMethod(classClassType, "forName",
+                                                     "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;")
             args.add(virtualMachine.mirrorOf(true))
             args.add(classLoader!!)
           }
