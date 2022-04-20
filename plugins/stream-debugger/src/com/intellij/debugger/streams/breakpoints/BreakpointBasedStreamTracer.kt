@@ -26,16 +26,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession, private 
     val bs = BreakpointSetter(mySession.getProject(),
                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                               (mySession.getCurrentStackFrame() as JavaStackFrame), cimpl)
-    // for testing
-    //var file = chain.getContext().getContainingFile();
-    //Visitor v = new Visitor();
-    //file.accept(v);
-    //var methods = v.getPsiMethods();
-    //for (var m : methods) {
-    //  int offset = m.getTextOffset();
-    //  bs.setBreakpoint(m.getContainingFile(), offset);
-    //}
-
     // setting all bps to actual stream methods
     //for (int i = 0; i < chainReferences.toArray().length; i++) {
     //  int offset = chainReferences.get(i).getTextOffset();

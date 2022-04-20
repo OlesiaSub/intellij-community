@@ -15,7 +15,7 @@ import com.jetbrains.jdi.MethodImpl
 import com.sun.jdi.*
 import com.sun.jdi.event.MethodExitEvent
 
-class CustomClassLoadingUtil(private val cimpl: EvaluationContextImpl,
+class CustomClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
                              private val process: DebugProcessImpl,
                              private val stackFrame: JavaStackFrame) {
 
@@ -33,7 +33,6 @@ class CustomClassLoadingUtil(private val cimpl: EvaluationContextImpl,
     var classLoader: ClassLoaderReference? = null
 
     try {
-
       process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
                                                                          stackFrame.stackFrameProxy.threadProxy()) {
         override fun getPriority(): PrioritizedTask.Priority {
@@ -41,9 +40,9 @@ class CustomClassLoadingUtil(private val cimpl: EvaluationContextImpl,
         }
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
-          classLoader = ClassLoadingUtils.getClassLoader(cimpl, process)
+          classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
           val bytes = ConsumerExtractor().extractConsumer()
-          ClassLoadingUtils.defineClass("com.intellij.debugger.streams.breakpoints.MyConsumerTest", bytes, cimpl, process, classLoader)
+          ClassLoadingUtils.defineClass("com.intellij.debugger.streams.breakpoints.MyConsumerTest", bytes, contextImpl, process, classLoader)
           args.add(virtualMachine.mirrorOf(qName))
           if (classLoader != null) {
             forNameMethod = DebuggerUtils.findMethod(classClassType, "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;")
@@ -56,8 +55,8 @@ class CustomClassLoadingUtil(private val cimpl: EvaluationContextImpl,
           val classReference = classClassType.invokeMethod(event.thread(), forNameMethod, args, MethodImpl.SKIP_ASSIGNABLE_CHECK)
           if (classReference is ClassObjectReference) {
             refType = classReference.reflectedType()
-            if (classLoader!! is ClassLoaderReferenceImpl) {
-              classLoader!!.addVisible(refType)
+            if (classLoader is ClassLoaderReferenceImpl) {
+              (classLoader as ClassLoaderReferenceImpl).addVisible(refType)
             }
           }
         }
@@ -70,28 +69,6 @@ class CustomClassLoadingUtil(private val cimpl: EvaluationContextImpl,
       e.printStackTrace()
     }
     return classLoader
-    //val bytes = ConsumerExtractor().extractConsumer()
-    //val loader = ClassLoadingUtils.getClassLoader(cimpl, process)
-    //ClassLoadingUtils.defineClass("com.intellij.debugger.streams.breakpoints.MyConsumerTest", bytes, cimpl, process, loader)
-
-    //args.add(virtualMachine.mirrorOf(qName))
-    //if (classLoader != null) {
-    //  forNameMethod = DebuggerUtils.findMethod(classClassType, "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;")
-    //  args.add(virtualMachine.mirrorOf(true))
-    //  args.add(classLoader)
-    //}
-    //else {
-    //  forNameMethod = DebuggerUtils.findMethod(classClassType, "forName", "(Ljava/lang/String;)Ljava/lang/Class;")
-    //}
-    //val classReference = classClassType.invokeMethod(event.thread(), forNameMethod, args, MethodImpl.SKIP_ASSIGNABLE_CHECK)
-    //if (classReference is ClassObjectReference) {
-    //  val refType = classReference.reflectedType()
-    //  if (classLoader is ClassLoaderReferenceImpl) {
-    //    classLoader.addVisible(refType)
-    //  }
-    //  return refType
-    //}
-    //return null
   }
 
   private fun reformatArrayName(className: String): String {
