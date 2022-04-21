@@ -85,7 +85,6 @@ public final class TraceStreamAction extends AnAction {
       return;
     }
     List<ChainResolver.StreamChainWithLibrary> chains = CHAIN_RESOLVER.getChains(element);
-    // MINE got all chains, they were built above
     List<List<PsiMethod>> chainReferences = CHAIN_RESOLVER.getChainsReferences(element);
     if (chains.isEmpty()) {
       LOG.warn("stream chain is not built");

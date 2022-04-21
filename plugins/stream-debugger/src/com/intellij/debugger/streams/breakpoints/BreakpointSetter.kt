@@ -5,7 +5,6 @@ import com.intellij.debugger.DebuggerManagerEx
 import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.SuspendContextImpl
-import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.PrioritizedTask
 import com.intellij.debugger.ui.breakpoints.BreakpointManager
@@ -15,14 +14,12 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
-import com.sun.jdi.ClassLoaderReference
 import com.sun.jdi.VMDisconnectedException
 
 
 class BreakpointSetter(private val project: Project,
                        private val process: DebugProcessImpl,
-                       private val myStackFrame: JavaStackFrame,
-                       private val contextImpl: EvaluationContextImpl) {
+                       private val myStackFrame: JavaStackFrame) {
 
   var breakpoint: MethodBreakpoint? = null
 
@@ -39,8 +36,8 @@ class BreakpointSetter(private val project: Project,
           val myBp = MyMethodBreakpoint(breakpoint!!.project, breakpoint!!.xBreakpoint, process, myStackFrame)
           val meReq = process.requestsManager.createMethodExitRequest(myBp)
           meReq.addClassFilter("java.util.stream.ReferencePipeline")
-          //DebuggerUtilsAsync.setEnabled(meReq, true) // хз в чем разница
           meReq.enable()
+          //DebuggerUtilsAsync.setEnabled(meReq, true) // в чем разница между этим и тем, что выше? (в моем случае)
         }
       })
     }

@@ -3,6 +3,7 @@ package com.intellij.debugger.streams.breakpoints;
 
 import java.util.function.Consumer;
 
+// из этого скомпиленного класса беру consumer
 public class MyConsumerTest {
   public static Consumer<Integer> consumer = o -> System.out.println("in my consumer " + o);
 }

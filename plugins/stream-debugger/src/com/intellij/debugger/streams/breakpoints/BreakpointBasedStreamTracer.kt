@@ -12,7 +12,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.psi.PsiMethod
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
-import com.sun.jdi.ClassLoaderReference
 import java.util.concurrent.atomic.AtomicInteger
 
 class BreakpointBasedStreamTracer(private val mySession: XDebugSession, private val chainReferences: List<PsiMethod>) : StreamTracer {
@@ -23,24 +22,22 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession, private 
 
   private fun traverseBreakpoints() {
     val stackFrame = (mySession.getCurrentStackFrame() as JavaStackFrame)
-    val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
-                                            (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
     val bs = BreakpointSetter(mySession.getProject(),
                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
-                              (mySession.getCurrentStackFrame() as JavaStackFrame), contextImpl)
-
+                              (mySession.getCurrentStackFrame() as JavaStackFrame))
+    val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
+                                            (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
     val classLoadingUtil = MyClassLoadingUtil(contextImpl,
                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                               (mySession.getCurrentStackFrame() as JavaStackFrame))
-    // todo загрузить класс здесь
     classLoadingUtil.loadClass()
 
-    //  bs.classLoader = classLoader
     // setting all bps to actual stream methods
     //for (int i = 0; i < chainReferences.toArray().length; i++) {
     //  int offset = chainReferences.get(i).getTextOffset();
     //  MethodBreakpoint bp = bs.setBreakpoint(chainReferences.get(i).getContainingFile(), offset);
     //}
+
     val i = AtomicInteger(0)
     val offset = AtomicInteger(chainReferences[i.get()].textOffset)
     bs.setBreakpoint(chainReferences[i.get()].containingFile, offset.get())
@@ -49,19 +46,16 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession, private 
     mySession.getDebugProcess().resume(mySession.getSuspendContext())
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
-        //if (checker.get() == 0) {
-        //  classLoader = classLoadingUtil.loadClass()
-        //  bs.classLoader = classLoader
-        //}
-        //checker.incrementAndGet()
+        // просто чтобы не стоять на брейкпоинте
+        // todo наверное можно заменить на проверку через breakpointReached() и резьюмить только на конкретном бп
         ApplicationManager.getApplication().invokeLater {
+          // раньше тут ставила все брейкпоинты
           //if (i.get() >= chainReferences.size) {
           //  mySession.getDebugProcess().resume(mySession.getSuspendContext())
           //  return@invokeLater
           //}
-          ////bs.setRequest();
           //offset.set(chainReferences[i.get()].textOffset)
-          ////bs.setBreakpoint(chainReferences.get(i.get()).getContainingFile(), offset.get());
+          //bs.setBreakpoint(chainReferences.get(i.get()).getContainingFile(), offset.get());
           //i.incrementAndGet()
           mySession.getDebugProcess().resume(mySession.getSuspendContext());
           //mySession.getDebugProcess().startStepOut(mySession.getSuspendContext())
