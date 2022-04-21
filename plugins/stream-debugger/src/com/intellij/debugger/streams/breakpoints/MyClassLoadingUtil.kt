@@ -105,30 +105,31 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
           InvalidTypeException::class, EvaluateException::class)
   fun loadClass(): ClassLoaderReference? {
     try {
-      val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
-      val bytes = ConsumerExtractor().extractConsumer()
-      ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
-      val debugProcess = contextImpl.debugProcess
-      debugProcess.loadClass(contextImpl, className, classLoader)
-      println("classes @")
-      classLoader.definedClasses().forEach { println(it) }
+      var classLoader : ClassLoaderReference? = null
+      process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
+                                                                         stackFrame.stackFrameProxy.threadProxy()) {
+        override fun getPriority(): PrioritizedTask.Priority {
+          return PrioritizedTask.Priority.HIGH
+        }
+
+        override fun threadAction(suspendContext: SuspendContextImpl) {
+          classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
+          val bytes = ConsumerExtractor().extractConsumer()
+          ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
+          val debugProcess = contextImpl.debugProcess
+          debugProcess.loadClass(contextImpl, className, classLoader)
+          println("classes @")
+          classLoader!!.definedClasses().forEach { println(it) }
+          //val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
+          //val bytes = ConsumerExtractor().extractConsumer()
+          //ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
+          //val debugProcess = contextImpl.debugProcess
+          //debugProcess.loadClass(contextImpl, className, classLoader)
+          //println("classes @")
+          //classLoader.definedClasses().forEach { println(it) }
+        }
+      })
       return classLoader
-      //process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
-      //                                                                   stackFrame.stackFrameProxy.threadProxy()) {
-      //  override fun getPriority(): PrioritizedTask.Priority {
-      //    return PrioritizedTask.Priority.HIGH
-      //  }
-      //
-      //  override fun threadAction(suspendContext: SuspendContextImpl) {
-      //    //val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
-      //    //val bytes = ConsumerExtractor().extractConsumer()
-      //    //ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
-      //    //val debugProcess = contextImpl.debugProcess
-      //    //debugProcess.loadClass(contextImpl, className, classLoader)
-      //    //println("classes @")
-      //    //classLoader.definedClasses().forEach { println(it) }
-      //  }
-      //})
     }
     catch (e: VMDisconnectedException) {
       println("Virtual Machine is disconnected.")

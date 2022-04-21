@@ -15,6 +15,7 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.sun.jdi.ClassLoaderReference
 import com.sun.jdi.VMDisconnectedException
 
 
@@ -35,9 +36,10 @@ class BreakpointSetter(private val project: Project,
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
-          val myBp = MyMethodBreakpoint(breakpoint!!.project, breakpoint!!.xBreakpoint, contextImpl, process, myStackFrame)
+          val myBp = MyMethodBreakpoint(breakpoint!!.project, breakpoint!!.xBreakpoint, process, myStackFrame)
           val meReq = process.requestsManager.createMethodExitRequest(myBp)
           meReq.addClassFilter("java.util.stream.ReferencePipeline")
+          //DebuggerUtilsAsync.setEnabled(meReq, true) // хз в чем разница
           meReq.enable()
         }
       })

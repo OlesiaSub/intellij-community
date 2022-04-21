@@ -12,6 +12,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.psi.PsiMethod
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
+import com.sun.jdi.ClassLoaderReference
 import java.util.concurrent.atomic.AtomicInteger
 
 class BreakpointBasedStreamTracer(private val mySession: XDebugSession, private val chainReferences: List<PsiMethod>) : StreamTracer {
@@ -22,11 +23,19 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession, private 
 
   private fun traverseBreakpoints() {
     val stackFrame = (mySession.getCurrentStackFrame() as JavaStackFrame)
-    val cimpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
-                                      (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
+    val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
+                                            (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
     val bs = BreakpointSetter(mySession.getProject(),
                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
-                              (mySession.getCurrentStackFrame() as JavaStackFrame), cimpl)
+                              (mySession.getCurrentStackFrame() as JavaStackFrame), contextImpl)
+
+    val classLoadingUtil = MyClassLoadingUtil(contextImpl,
+                              (stackFrame.descriptor.debugProcess as DebugProcessImpl),
+                              (mySession.getCurrentStackFrame() as JavaStackFrame))
+    // todo загрузить класс здесь
+    classLoadingUtil.loadClass()
+
+    //  bs.classLoader = classLoader
     // setting all bps to actual stream methods
     //for (int i = 0; i < chainReferences.toArray().length; i++) {
     //  int offset = chainReferences.get(i).getTextOffset();
@@ -40,17 +49,22 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession, private 
     mySession.getDebugProcess().resume(mySession.getSuspendContext())
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
+        //if (checker.get() == 0) {
+        //  classLoader = classLoadingUtil.loadClass()
+        //  bs.classLoader = classLoader
+        //}
+        //checker.incrementAndGet()
         ApplicationManager.getApplication().invokeLater {
-          if (i.get() >= chainReferences.size) {
-            mySession.getDebugProcess().resume(mySession.getSuspendContext())
-            return@invokeLater
-          }
-          //bs.setRequest();
-          offset.set(chainReferences[i.get()].textOffset)
-          //bs.setBreakpoint(chainReferences.get(i.get()).getContainingFile(), offset.get());
-          i.incrementAndGet()
-          //mySession.getDebugProcess().resume(mySession.getSuspendContext());
-          mySession.getDebugProcess().startStepOut(mySession.getSuspendContext())
+          //if (i.get() >= chainReferences.size) {
+          //  mySession.getDebugProcess().resume(mySession.getSuspendContext())
+          //  return@invokeLater
+          //}
+          ////bs.setRequest();
+          //offset.set(chainReferences[i.get()].textOffset)
+          ////bs.setBreakpoint(chainReferences.get(i.get()).getContainingFile(), offset.get());
+          //i.incrementAndGet()
+          mySession.getDebugProcess().resume(mySession.getSuspendContext());
+          //mySession.getDebugProcess().startStepOut(mySession.getSuspendContext())
         }
       }
     })

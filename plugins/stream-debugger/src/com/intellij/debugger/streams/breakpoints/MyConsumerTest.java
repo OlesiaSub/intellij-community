@@ -4,5 +4,5 @@ package com.intellij.debugger.streams.breakpoints;
 import java.util.function.Consumer;
 
 public class MyConsumerTest {
-  public Consumer<Integer> consumer = o -> System.out.println("in my consumer " + o);
+  public static Consumer<Integer> consumer = o -> System.out.println("in my consumer " + o);
 }
