@@ -14,7 +14,9 @@ import com.intellij.psi.PsiMethod
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
 import com.jetbrains.jdi.FieldImpl
+import com.jetbrains.jdi.ObjectReferenceImpl
 import com.sun.jdi.ArrayReference
+import com.sun.jdi.IntegerValue
 import com.sun.jdi.ReferenceType
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -52,13 +54,28 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                 .stackFrameProxy.virtualMachine.classesByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer")[0]
               val peekArray = loadedClass.fieldByName("peekArray")
               val fieldValue = loadedClass.getValues(listOf(peekArray))[peekArray]
+              val resultList = mutableListOf<MutableList<Int>>()
+              var cnt = 0;
               if (fieldValue is ArrayReference) {
                 for (map in fieldValue.values) {
-                  if (map is ArrayReference) {
+                  if (map != null && map is ArrayReference) {
+                    resultList.add(cnt, mutableListOf())
                     for (mapValue in map.values) {
-                      println("here")
+                      if (mapValue != null) {
+                        val value = (mapValue as ObjectReferenceImpl).getValue(mapValue.referenceType().fieldByName("value"))
+                        if (value != null && value is IntegerValue) {
+                          resultList.get(cnt).add(value.value())
+                        }
+                      }
                     }
+                    cnt++
                   }
+                }
+              }
+              resultList.forEach { l ->
+                run {
+                  println("\nNEXT")
+                  l.forEach { println(it) }
                 }
               }
               returnedToFile.set(true)

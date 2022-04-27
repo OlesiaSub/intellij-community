@@ -39,6 +39,7 @@ class MyMethodBreakpoint(project: Project,
   }
 
   private fun handleMethodExitEvent(event: MethodExitEvent) {
+    println("event ${event.method()}")
     val returnValue = event.returnValue()
     if (returnValue is ObjectReference) {
       val runnableVal = runnable@{
