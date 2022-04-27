@@ -9,56 +9,65 @@ import com.intellij.debugger.streams.trace.StreamTracer
 import com.intellij.debugger.streams.trace.TracingCallback
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiMethod
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
-import java.util.concurrent.atomic.AtomicInteger
+import com.jetbrains.jdi.FieldImpl
+import com.sun.jdi.ArrayReference
+import com.sun.jdi.ReferenceType
+import java.util.concurrent.atomic.AtomicBoolean
 
-class BreakpointBasedStreamTracer(private val mySession: XDebugSession, private val chainReferences: List<PsiMethod>) : StreamTracer {
+class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
+                                  private val chainReferences: MutableList<out PsiMethod>,
+                                  private val chainFile: VirtualFile) : StreamTracer {
 
   override fun trace(chain: StreamChain, callback: TracingCallback) {
+
     traverseBreakpoints()
   }
 
   private fun traverseBreakpoints() {
     val stackFrame = (mySession.getCurrentStackFrame() as JavaStackFrame)
-    val bs = BreakpointSetter(mySession.getProject(),
-                              (stackFrame.descriptor.debugProcess as DebugProcessImpl),
-                              (mySession.getCurrentStackFrame() as JavaStackFrame))
+    val breakpointSetter = BreakpointSetter(mySession.getProject(),
+                                            (stackFrame.descriptor.debugProcess as DebugProcessImpl),
+                                            (mySession.getCurrentStackFrame() as JavaStackFrame))
     val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
                                             (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
     val classLoadingUtil = MyClassLoadingUtil(contextImpl,
-                              (stackFrame.descriptor.debugProcess as DebugProcessImpl),
-                              (mySession.getCurrentStackFrame() as JavaStackFrame))
+                                              (stackFrame.descriptor.debugProcess as DebugProcessImpl),
+                                              (mySession.getCurrentStackFrame() as JavaStackFrame))
     classLoadingUtil.loadClass()
 
-    // setting all bps to actual stream methods
-    //for (int i = 0; i < chainReferences.toArray().length; i++) {
-    //  int offset = chainReferences.get(i).getTextOffset();
-    //  MethodBreakpoint bp = bs.setBreakpoint(chainReferences.get(i).getContainingFile(), offset);
-    //}
-
-    val i = AtomicInteger(0)
-    val offset = AtomicInteger(chainReferences[i.get()].textOffset)
-    bs.setBreakpoint(chainReferences[i.get()].containingFile, offset.get())
-    i.incrementAndGet()
-    bs.setRequest()
-    mySession.getDebugProcess().resume(mySession.getSuspendContext())
+    val returnedToFile = AtomicBoolean(false)
+    breakpointSetter.setBreakpoint(chainReferences[0].containingFile, chainReferences[0].textOffset)
+    breakpointSetter.setRequest()
+    mySession.debugProcess.resume(mySession.suspendContext)
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
-        // просто чтобы не стоять на брейкпоинте
-        // todo наверное можно заменить на проверку через breakpointReached() и резьюмить только на конкретном бп
         ApplicationManager.getApplication().invokeLater {
-          // раньше тут ставила все брейкпоинты
-          //if (i.get() >= chainReferences.size) {
-          //  mySession.getDebugProcess().resume(mySession.getSuspendContext())
-          //  return@invokeLater
-          //}
-          //offset.set(chainReferences[i.get()].textOffset)
-          //bs.setBreakpoint(chainReferences.get(i.get()).getContainingFile(), offset.get());
-          //i.incrementAndGet()
-          mySession.getDebugProcess().resume(mySession.getSuspendContext());
-          //mySession.getDebugProcess().startStepOut(mySession.getSuspendContext())
+          if (!returnedToFile.get()) {
+            if (mySession.currentPosition!!.file.name.equals(chainFile.name)) {
+              val loadedClass = (mySession.currentStackFrame as JavaStackFrame)
+                .stackFrameProxy.virtualMachine.classesByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer")[0]
+              val peekArray = loadedClass.fieldByName("peekArray")
+              val fieldValue = loadedClass.getValues(listOf(peekArray))[peekArray]
+              if (fieldValue is ArrayReference) {
+                for (map in fieldValue.values) {
+                  if (map is ArrayReference) {
+                    for (mapValue in map.values) {
+                      println("here")
+                    }
+                  }
+                }
+              }
+              returnedToFile.set(true)
+            }
+            else {
+              mySession.debugProcess.resume(mySession.suspendContext)
+              //mySession.getDebugProcess().startStepOut(mySession.getSuspendContext())
+            }
+          }
         }
       }
     })

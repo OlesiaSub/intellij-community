@@ -35,6 +35,7 @@ import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
@@ -112,9 +113,11 @@ public final class TraceStreamAction extends AnAction {
     ApplicationManager.getApplication().invokeLater(window::show);
     final Project project = session.getProject();
     final TraceExpressionBuilder expressionBuilder = provider.getExpressionBuilder(project);
-    final TraceResultInterpreterImpl resultInterpreter = new TraceResultInterpreterImpl(provider.getLibrarySupport().getInterpreterFactory());
+    final TraceResultInterpreterImpl resultInterpreter =
+      new TraceResultInterpreterImpl(provider.getLibrarySupport().getInterpreterFactory());
     //final StreamTracer tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
-    final StreamTracer tracer = new BreakpointBasedStreamTracer(session, chainReferences);
+    final StreamTracer tracer = new BreakpointBasedStreamTracer(session, chainReferences,
+                                                                Objects.requireNonNull(session.getCurrentPosition()).getFile());
     tracer.trace(chain, new TracingCallback() {
       @Override
       public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {

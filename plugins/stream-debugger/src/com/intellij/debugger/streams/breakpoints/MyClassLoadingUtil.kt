@@ -9,18 +9,20 @@ import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.ClassLoadingUtils
 import com.intellij.debugger.impl.PrioritizedTask
+import com.intellij.debugger.streams.breakpoints.consumers.ConsumerExtractor
 import com.sun.jdi.*
 
 class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
                          private val process: DebugProcessImpl,
                          private val stackFrame: JavaStackFrame) {
 
-  private val className = "com.intellij.debugger.streams.breakpoints.MyConsumerTest"
+  private val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
 
   @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
           InvalidTypeException::class, EvaluateException::class)
-  fun loadClass() {
+  fun loadClass() : ReferenceType? {
     try {
+      var classReference: ReferenceType? = null
       process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
                                                                          stackFrame.stackFrameProxy.threadProxy()) {
         override fun getPriority(): PrioritizedTask.Priority {
@@ -32,10 +34,10 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
           val bytes = ConsumerExtractor().extractConsumer()
           ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
           val debugProcess = contextImpl.debugProcess
-          debugProcess.loadClass(contextImpl, className, classLoader)
+          classReference = debugProcess.loadClass(contextImpl, className, classLoader)
         }
       })
-      return
+      return classReference
     }
     catch (e: VMDisconnectedException) {
       println("Virtual Machine is disconnected.")
@@ -43,5 +45,6 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
     catch (e: Exception) {
       e.printStackTrace()
     }
+    return null
   }
 }

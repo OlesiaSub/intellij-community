@@ -9,26 +9,30 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.xdebugger.breakpoints.XBreakpoint
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties
+import com.sun.jdi.ArrayReference
 import com.sun.jdi.Method
 import com.sun.jdi.ObjectReference
+import com.sun.jdi.Value
 import com.sun.jdi.event.LocatableEvent
 import com.sun.jdi.event.MethodExitEvent
+import java.util.concurrent.atomic.AtomicInteger
 
 class MyMethodBreakpoint(project: Project,
                          breakpoint: XBreakpoint<out XBreakpointProperties<*>>?,
                          private val process: DebugProcessImpl,
                          private val stackFrame: JavaStackFrame) : MethodBreakpoint(project, breakpoint) {
 
-  var sett: MutableSet<Method> = mutableSetOf()
+  var methods: MutableSet<Method> = mutableSetOf()
+  companion object var index = 0
 
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
     if (event is MethodExitEvent) {
-      if (sett.contains(event.method())) { // костыльно
-        sett.remove(event.method())
+      if (methods.contains(event.method())) { // костыльно
+        methods.remove(event.method())
         return true
       }
-      sett.add(event.method())
+      methods.add(event.method())
       handleMethodExitEvent(event)
     }
     return true
@@ -49,15 +53,29 @@ class MyMethodBreakpoint(project: Project,
           //val classLoadingUtil = MyClassLoadingUtil(contextImpl, (stackFrame.descriptor.debugProcess as DebugProcessImpl), stackFrame)
           //classLoadingUtil.loadClass("com.intellij.debugger.streams.breakpoints.MyConsumerTest", event)
         //}
-        val targetClass = event.virtualMachine().classesByName("com.intellij.debugger.streams.breakpoints.MyConsumerTest")[0]
-        val field = targetClass.fieldByName("consumer")
+        val targetClass = event.virtualMachine().classesByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer")[0]
+        val field = targetClass.fieldByName("consumersArray")
         val fieldValue = targetClass.getValues(listOf(field))[field]
-        val ret = returnValue
+        var fieldValueByIndex: Value? = null
+        if (fieldValue is ArrayReference) {
+          fieldValueByIndex = fieldValue.getValue(index)
+          index++
+        }
+        val newReturnValue = returnValue
           .invokeMethod(event.thread(),
                         returnValue.referenceType().methodsByName("peek")[0],
-                        listOf(fieldValue),
+                        listOf(fieldValueByIndex!!),
                         0)
-        event.thread().forceEarlyReturn(ret)
+        event.thread().forceEarlyReturn(newReturnValue)
+        //if (newReturnValue is ArrayReference) {
+        //  for (map in newReturnValue.values) {
+        //    if (map is ArrayReference) {
+        //      for (mapValue in map.values) {
+        //        println("here")
+        //      }
+        //    }
+        //  }
+        //}
         return@runnable
       }
       ApplicationManager.getApplication().invokeLater(runnableVal)

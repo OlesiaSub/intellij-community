@@ -33,10 +33,10 @@ class BreakpointSetter(private val project: Project,
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
-          val myBp = MyMethodBreakpoint(breakpoint!!.project, breakpoint!!.xBreakpoint, process, myStackFrame)
-          val meReq = process.requestsManager.createMethodExitRequest(myBp)
-          meReq.addClassFilter("java.util.stream.ReferencePipeline")
-          meReq.enable()
+          val myMethodBreakpoint = MyMethodBreakpoint(breakpoint!!.project, breakpoint!!.xBreakpoint, process, myStackFrame)
+          val methodExitRequest = process.requestsManager.createMethodExitRequest(myMethodBreakpoint)
+          methodExitRequest.addClassFilter("java.util.stream.ReferencePipeline")
+          methodExitRequest.enable()
           //DebuggerUtilsAsync.setEnabled(meReq, true) // в чем разница между этим и тем, что выше? (в моем случае)
         }
       })
@@ -51,23 +51,23 @@ class BreakpointSetter(private val project: Project,
 
   fun setBreakpoint(currentFile: PsiFile, offset: Int): MethodBreakpoint? {
     val document = runReadAction { PsiDocumentManager.getInstance(project).getDocument(currentFile) } ?: return null
-    var bp: MethodBreakpoint? = null
-    var bpManager: BreakpointManager?
+    var methodBreakpoint: MethodBreakpoint? = null
+    var breakpointManager: BreakpointManager?
 
     runWriteAction {
       val lineIndex = document.getLineNumber(offset)
-      bpManager = DebuggerManagerEx.getInstanceEx(project).breakpointManager
-      bp = bpManager!!.addMethodBreakpoint(document, lineIndex)
-      bp?.xBreakpoint?.properties?.WATCH_EXIT = true
-      bp?.xBreakpoint?.properties?.EMULATED = false
-      if (bp != null) {
+      breakpointManager = DebuggerManagerEx.getInstanceEx(project).breakpointManager
+      methodBreakpoint = breakpointManager!!.addMethodBreakpoint(document, lineIndex)
+      methodBreakpoint?.xBreakpoint?.properties?.WATCH_EXIT = true
+      methodBreakpoint?.xBreakpoint?.properties?.EMULATED = false
+      if (methodBreakpoint != null) {
         if (breakpoint != null) {
-          bpManager!!.removeBreakpoint(breakpoint)
+          breakpointManager!!.removeBreakpoint(breakpoint)
         }
-        breakpoint = bp
+        breakpoint = methodBreakpoint
       }
     }
-    return bp
+    return methodBreakpoint
   }
 
 }
