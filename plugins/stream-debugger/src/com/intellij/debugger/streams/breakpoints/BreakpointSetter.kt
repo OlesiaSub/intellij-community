@@ -35,10 +35,12 @@ class BreakpointSetter(private val project: Project,
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
           val myMethodBreakpoint = MyMethodBreakpoint(breakpoint!!.project, breakpoint!!.xBreakpoint, process, myStackFrame, chainsSize)
-          val methodExitRequest = process.requestsManager.createMethodExitRequest(myMethodBreakpoint)
-          methodExitRequest.addClassFilter("java.util.stream.ReferencePipeline")
-          methodExitRequest.enable()
-          //DebuggerUtilsAsync.setEnabled(meReq, true) // в чем разница между этим и тем, что выше? (в моем случае)
+          val methodExitRequest1 = process.requestsManager.createMethodExitRequest(myMethodBreakpoint)
+          val methodExitRequest2 = process.requestsManager.createMethodExitRequest(myMethodBreakpoint)
+          methodExitRequest1.addClassFilter("java.util.stream.ReferencePipeline")
+          methodExitRequest2.addClassFilter("java.util.stream.StreamSupport")
+          methodExitRequest1.enable()
+          methodExitRequest2.enable()
         }
       })
     }

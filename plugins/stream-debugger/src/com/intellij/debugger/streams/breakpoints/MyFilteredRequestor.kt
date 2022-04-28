@@ -1,23 +1,19 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.debugger.streams.breakpoints
 
-import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
-import com.intellij.debugger.ui.breakpoints.MethodBreakpoint
+import com.intellij.debugger.ui.breakpoints.FilteredRequestorImpl
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
-import com.intellij.xdebugger.breakpoints.XBreakpoint
-import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 import com.sun.jdi.*
 import com.sun.jdi.event.LocatableEvent
 import com.sun.jdi.event.MethodExitEvent
 
-class MyMethodBreakpoint(project: Project,
-                         breakpoint: XBreakpoint<out XBreakpointProperties<*>>?,
-                         private val process: DebugProcessImpl,
+// todo replace myMethodBp with it
+class MyFilteredRequestor(project: Project,
                          private val stackFrame: JavaStackFrame,
-                         private val chainsSize: Int) : MethodBreakpoint(project, breakpoint) {
+                         private val chainsSize: Int) : FilteredRequestorImpl(project) {
 
   var methods: MutableSet<Method> = mutableSetOf()
 
@@ -41,6 +37,7 @@ class MyMethodBreakpoint(project: Project,
   }
 
   private fun handleMethodExitEvent(event: MethodExitEvent) {
+    println("event ${event.method()}")
     val returnValue = event.returnValue()
     if (returnValue is ObjectReference) {
       val runnableVal = runnable@{

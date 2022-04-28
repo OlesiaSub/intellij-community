@@ -5,6 +5,8 @@ import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
+import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
+import com.intellij.debugger.impl.PrioritizedTask
 import com.intellij.debugger.streams.trace.StreamTracer
 import com.intellij.debugger.streams.trace.TracingCallback
 import com.intellij.debugger.streams.wrapper.StreamChain
@@ -54,32 +56,23 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
           if (!returnedToFile.get()) {
             if (mySession.currentPosition!!.file.name.equals(chainFile.name)) {
               val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
-              val peekArray = loadedClass!!.fieldByName("peekArray")
-              val fieldValue = loadedClass.getValues(listOf(peekArray))[peekArray]
-              val resultList = mutableListOf<MutableList<Int>>()
-              var cnt = 0;
-              if (fieldValue is ArrayReference) {
-                for (map in fieldValue.values) {
-                  if (map != null && map is ArrayReference) {
-                    resultList.add(cnt, mutableListOf())
-                    for (mapValue in map.values) {
-                      if (mapValue != null) {
-                        val value = (mapValue as ObjectReferenceImpl).getValue(mapValue.referenceType().fieldByName("value"))
-                        if (value != null && value is IntegerValue) {
-                          resultList.get(cnt).add(value.value())
-                        }
-                      }
-                    }
-                    cnt++
+              val debugProcess = stackFrame.descriptor.debugProcess as DebugProcessImpl
+              debugProcess.managerThread.schedule(object : DebuggerContextCommandImpl(debugProcess.debuggerContext,
+                                                                                      stackFrame.stackFrameProxy.threadProxy()) {
+                override fun getPriority(): PrioritizedTask.Priority {
+                  return PrioritizedTask.Priority.HIGH
+                }
+
+                override fun threadAction(suspendContext: SuspendContextImpl) {
+                  if (loadedClass is ClassType) {
+                    val returnValue = loadedClass.invokeMethod(stackFrame.stackFrameProxy.threadProxy().threadReference,
+                                                               loadedClass.methodsByName("getResult")[0],
+                                                               listOf(),
+                                                               0)
+                    println("returned $returnValue")
                   }
                 }
-              }
-              resultList.forEach { l ->
-                run {
-                  println("\nNEXT")
-                  l.forEach { println(it) }
-                }
-              }
+              })
               returnedToFile.set(true)
             }
             else {
