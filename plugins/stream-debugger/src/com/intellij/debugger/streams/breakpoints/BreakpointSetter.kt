@@ -19,7 +19,8 @@ import com.sun.jdi.VMDisconnectedException
 
 class BreakpointSetter(private val project: Project,
                        private val process: DebugProcessImpl,
-                       private val myStackFrame: JavaStackFrame) {
+                       private val myStackFrame: JavaStackFrame,
+                       private val chainsSize: Int) {
 
   var breakpoint: MethodBreakpoint? = null
 
@@ -33,7 +34,7 @@ class BreakpointSetter(private val project: Project,
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
-          val myMethodBreakpoint = MyMethodBreakpoint(breakpoint!!.project, breakpoint!!.xBreakpoint, process, myStackFrame)
+          val myMethodBreakpoint = MyMethodBreakpoint(breakpoint!!.project, breakpoint!!.xBreakpoint, process, myStackFrame, chainsSize)
           val methodExitRequest = process.requestsManager.createMethodExitRequest(myMethodBreakpoint)
           methodExitRequest.addClassFilter("java.util.stream.ReferencePipeline")
           methodExitRequest.enable()

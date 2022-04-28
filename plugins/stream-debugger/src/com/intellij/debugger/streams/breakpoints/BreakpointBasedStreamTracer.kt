@@ -16,6 +16,7 @@ import com.intellij.xdebugger.XDebugSessionListener
 import com.jetbrains.jdi.FieldImpl
 import com.jetbrains.jdi.ObjectReferenceImpl
 import com.sun.jdi.ArrayReference
+import com.sun.jdi.ClassType
 import com.sun.jdi.IntegerValue
 import com.sun.jdi.ReferenceType
 import java.util.concurrent.atomic.AtomicBoolean
@@ -30,17 +31,19 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
   }
 
   private fun traverseBreakpoints() {
-    val stackFrame = (mySession.getCurrentStackFrame() as JavaStackFrame)
+    val stackFrame = (mySession.currentStackFrame as JavaStackFrame)
     val breakpointSetter = BreakpointSetter(mySession.getProject(),
                                             (stackFrame.descriptor.debugProcess as DebugProcessImpl),
-                                            (mySession.getCurrentStackFrame() as JavaStackFrame))
+                                            stackFrame,
+                                            chainReferences.size)
     val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
-                                            (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
+                                            stackFrame.stackFrameProxy)
     val classLoadingUtil = MyClassLoadingUtil(contextImpl,
                                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
-                                              (mySession.getCurrentStackFrame() as JavaStackFrame))
+                                              stackFrame)
     classLoadingUtil.loadClass()
-
+    // todo add className to stream debugger bundle (another .properties file?)
+    val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
     breakpointSetter.setBreakpoint(chainReferences[0].containingFile, chainReferences[0].textOffset)
     breakpointSetter.setRequest()
@@ -50,9 +53,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
         ApplicationManager.getApplication().invokeLater {
           if (!returnedToFile.get()) {
             if (mySession.currentPosition!!.file.name.equals(chainFile.name)) {
-              val loadedClass = (mySession.currentStackFrame as JavaStackFrame)
-                .stackFrameProxy.virtualMachine.classesByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer")[0]
-              val peekArray = loadedClass.fieldByName("peekArray")
+              val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
+              val peekArray = loadedClass!!.fieldByName("peekArray")
               val fieldValue = loadedClass.getValues(listOf(peekArray))[peekArray]
               val resultList = mutableListOf<MutableList<Int>>()
               var cnt = 0;

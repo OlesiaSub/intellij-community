@@ -9,34 +9,32 @@ public class PeekConsumer {
 
   private static final Object[] info = new Object[2];
   private static final AtomicInteger time = new AtomicInteger();
-  private static Object[][] peekArray;
+  private static Map<Integer, Object>[] peekArray;
 
   public static Consumer<Object>[] consumersArray;
 
-  static {
-    int n = 7;
-    peekArray = new Object[n][n];
-    //for (int i = 0; i < n; i++) {
-    //  peekArray[i] = new LinkedHashMap<>();
-    //}
+  public static void init(int n) {
+    System.out.println("SIZE = " + n);
+    peekArray = new LinkedHashMap[n];
+    for (int i = 0; i < n; i++) {
+      peekArray[i] = new LinkedHashMap<>();
+    }
     consumersArray = new Consumer[n];
     for (int i = 0; i < n; i++) {
       int finalI = i;
       consumersArray[i] = o -> {
         insertByIndex(finalI, o);
         time.incrementAndGet();
-        System.out.println(finalI + "   " + Arrays.toString(peekArray[finalI]));
+        System.out.println(finalI + "   " + peekArray[finalI]);
       };
     }
   }
 
-  private static void insertByIndex(int index, Object value) {
-    ArrayList<Object> tmp = new ArrayList<>(List.of());
-    if (peekArray[index] != null && peekArray[index].length != 0 && peekArray[index][0] != null) {
-      tmp = new ArrayList<>(List.of(peekArray[index]));
+  public static void insertByIndex(int index, Object value) {
+    if (index >= peekArray.length) {
+      System.out.println(index);
     }
-    tmp.add(value);
-    peekArray[index] = tmp.toArray();
+    else peekArray[index].put(time.get(), value);
   }
 
 }
