@@ -39,6 +39,12 @@ public class PeekConsumer {
     else peekArray[index].put(time.get(), value);
   }
 
+  public static void setReturnValue(long returnValue) {
+    System.out.println(returnValue);
+    streamResult = new long[] {returnValue};
+    System.out.println("stream result " + streamResult);
+  }
+
   public static Object getResult() {
     Object myRes;
     for (int index = 1; index <= peekArray.length; index++) {
@@ -79,6 +85,7 @@ public class PeekConsumer {
     }
     final long[] elapsedTime = new long[] { System.nanoTime() - startTime };
     myRes = new Object[] { info, streamResult, elapsedTime };
+    System.out.println(streamResult);
     return myRes;
   }
 }

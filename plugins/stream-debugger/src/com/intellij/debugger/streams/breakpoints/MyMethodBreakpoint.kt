@@ -20,12 +20,13 @@ class MyMethodBreakpoint(project: Project,
                          private val chainsSize: Int) : MethodBreakpoint(project, breakpoint) {
 
   var methods: MutableSet<Method> = mutableSetOf()
+  val targetClassName = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
 
   companion object {
     var index = 0
     var initialized = false
   }
-  // sus policy none
+  // suspend policy none
 
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
@@ -42,14 +43,25 @@ class MyMethodBreakpoint(project: Project,
 
   private fun handleMethodExitEvent(event: MethodExitEvent) {
     val returnValue = event.returnValue()
+    if (index == chainsSize) {
+      index++
+      val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
+      if (targetClass is ClassType) {
+        targetClass.invokeMethod(event.thread(),
+                                 targetClass.methodsByName("setReturnValue")[0],
+                                 listOf(returnValue),
+                                 0)
+        println("success ${event.method()}")
+      }
+    }
     if (returnValue is ObjectReference) {
       val runnableVal = runnable@{
-        val targetClass = event.virtualMachine().classesByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer")[0]
+        val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
         if (!initialized) {
           initialized = true;
           if (targetClass is ClassType) {
             targetClass.invokeMethod(event.thread(),
-                                     targetClass.methodsByName("init")[0],
+                                     targetClass.methodsByName("init")[0], // todo replace with constructor?
                                      listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(chainsSize)),
                                      0)
           }
