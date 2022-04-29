@@ -43,12 +43,14 @@ class BreakpointSetter(private val project: Project,
           methodExitRequest1.enable()
           methodExitRequest2.enable()
         }
-      }) } catch (e: VMDisconnectedException) {
-        println("Virtual Machine is disconnected.")
-      }
-      catch (e: Exception) {
-        e.printStackTrace()
-      }
+      })
+    }
+    catch (e: VMDisconnectedException) {
+      println("Virtual Machine is disconnected.")
+    }
+    catch (e: Exception) {
+      e.printStackTrace()
+    }
   }
 
   // unused

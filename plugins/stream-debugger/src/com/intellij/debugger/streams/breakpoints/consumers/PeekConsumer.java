@@ -36,13 +36,13 @@ public class PeekConsumer {
     if (index >= peekArray.length) {
       System.out.println(index);
     }
-    else peekArray[index].put(time.get(), value);
+    else {
+      peekArray[index].put(time.get(), value);
+    }
   }
 
   public static void setReturnValue(long returnValue) {
-    System.out.println(returnValue);
-    streamResult = new long[] {returnValue};
-    System.out.println("stream result " + streamResult);
+    streamResult = new long[]{returnValue};
   }
 
   public static Object getResult() {
@@ -52,7 +52,8 @@ public class PeekConsumer {
       Map<Integer, Object> cur;
       if (index == peekArray.length) {
         cur = new HashMap<>(prev.size());
-      } else {
+      }
+      else {
         cur = peekArray[index];
       }
       Object[] beforeArray;
@@ -66,7 +67,7 @@ public class PeekConsumer {
           values[i] = prev.get(key);
           i++;
         }
-        beforeArray = new Object[] { keys, values };
+        beforeArray = new Object[]{keys, values};
       }
       Object[] afterArray;
       {
@@ -79,13 +80,12 @@ public class PeekConsumer {
           values[i] = cur.get(key);
           i++;
         }
-        afterArray = new Object[] { keys, values };
+        afterArray = new Object[]{keys, values};
       }
-      info[index - 1] = new Object[] { beforeArray, afterArray };
+      info[index - 1] = new Object[]{beforeArray, afterArray};
     }
-    final long[] elapsedTime = new long[] { System.nanoTime() - startTime };
-    myRes = new Object[] { info, streamResult, elapsedTime };
-    System.out.println(streamResult);
+    final long[] elapsedTime = new long[]{System.nanoTime() - startTime};
+    myRes = new Object[]{info, streamResult, elapsedTime};
     return myRes;
   }
 }
