@@ -1,6 +1,7 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.debugger.streams.breakpoints
 
+import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
 import com.intellij.debugger.ui.breakpoints.FilteredRequestorImpl
@@ -11,8 +12,9 @@ import com.sun.jdi.event.LocatableEvent
 import com.sun.jdi.event.MethodExitEvent
 
 class MyFilteredRequestor(project: Project,
-                         private val stackFrame: JavaStackFrame,
-                         private val chainsSize: Int) : FilteredRequestorImpl(project) {
+                          private val process: DebugProcessImpl,
+                          private val stackFrame: JavaStackFrame,
+                          private val chainsSize: Int) : FilteredRequestorImpl(project) {
 
   private var methods: MutableSet<Method> = mutableSetOf()
   private val targetClassName = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
@@ -20,8 +22,8 @@ class MyFilteredRequestor(project: Project,
   companion object {
     var index = 0
     var initialized = false
+    var terminationCallReached = false
   }
-  // suspend policy none
 
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
@@ -39,6 +41,7 @@ class MyFilteredRequestor(project: Project,
   private fun handleMethodExitEvent(event: MethodExitEvent) {
     val returnValue = event.returnValue()
     if (index == chainsSize) {
+      terminationCallReached = true
       index++
       val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
       if (targetClass is ClassType) {

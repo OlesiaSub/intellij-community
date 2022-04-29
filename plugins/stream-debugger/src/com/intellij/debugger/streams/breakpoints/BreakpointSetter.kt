@@ -8,6 +8,7 @@ import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.PrioritizedTask
 import com.intellij.debugger.ui.breakpoints.BreakpointManager
+import com.intellij.debugger.ui.breakpoints.LineBreakpoint
 import com.intellij.debugger.ui.breakpoints.MethodBreakpoint
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
@@ -34,7 +35,7 @@ class BreakpointSetter(private val project: Project,
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
-          val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chainsSize)
+          val myFilteredRequestor = MyFilteredRequestor(project, process, myStackFrame, chainsSize)
           val methodExitRequest1 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           val methodExitRequest2 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           methodExitRequest1.addClassFilter("java.util.stream.ReferencePipeline")
@@ -51,25 +52,26 @@ class BreakpointSetter(private val project: Project,
   }
 
   // unused
-  fun setBreakpoint(currentFile: PsiFile, offset: Int): MethodBreakpoint? {
+  fun setBreakpoint(currentFile: PsiFile, offset: Int, project: Project): MethodBreakpoint? {
     val document = runReadAction { PsiDocumentManager.getInstance(project).getDocument(currentFile) } ?: return null
-    var methodBreakpoint: MethodBreakpoint? = null
+    //var methodBreakpoint: LineBreakpoint? = null
     var breakpointManager: BreakpointManager?
 
     runWriteAction {
       val lineIndex = document.getLineNumber(offset)
       breakpointManager = DebuggerManagerEx.getInstanceEx(project).breakpointManager
-      methodBreakpoint = breakpointManager!!.addMethodBreakpoint(document, lineIndex)
-      methodBreakpoint?.xBreakpoint?.properties?.WATCH_EXIT = true
-      methodBreakpoint?.xBreakpoint?.properties?.EMULATED = false
-      if (methodBreakpoint != null) {
-        if (breakpoint != null) {
-          breakpointManager!!.removeBreakpoint(breakpoint)
-        }
-        breakpoint = methodBreakpoint
-      }
+      val methodBreakpoint = breakpointManager!!.addLineBreakpoint(document, lineIndex)
+      //methodBreakpoint?.xBreakpoint?.properties?.WATCH_EXIT = true
+      //methodBreakpoint?.xBreakpoint?.properties?.EMULATED = false
+      //if (methodBreakpoint != null) {
+      //  if (breakpoint != null) {
+      //    breakpointManager!!.removeBreakpoint(breakpoint)
+      //  }
+      //  breakpoint = methodBreakpoint
+      //}
     }
-    return methodBreakpoint
+    println("SET")
+    return null
   }
 
 }
