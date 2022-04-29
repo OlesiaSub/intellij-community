@@ -12,7 +12,6 @@ import com.intellij.debugger.streams.trace.TraceResultInterpreter
 import com.intellij.debugger.streams.trace.TracingCallback
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiMethod
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
@@ -23,7 +22,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                                   private val chainReferences: MutableList<out PsiMethod>,
-                                  private val chainFile: VirtualFile,
                                   private val myResultInterpreter: TraceResultInterpreter) : StreamTracer {
 
   override fun trace(chain: StreamChain, callback: TracingCallback) {
@@ -58,29 +56,14 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
 
                 override fun threadAction(suspendContext: SuspendContextImpl) {
                   if (loadedClass is ClassType) {
-                    val reference =
-                      loadedClass.invokeMethod(
-                        (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
-                        loadedClass.methodsByName("getResult")[0],
-                        listOf(),
-                        0)
-                    if (reference is ArrayReference) {
-                      val interpretedResult = try {
-                        myResultInterpreter.interpret(chain, reference)
-                      }
-                      catch (t: Throwable) {
-                        throw t
-                      }
-                      val context = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
-                                                          (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
-                      callback.evaluated(interpretedResult, context)
+                    if (getTraceResult(loadedClass, chain, callback)) {
                       return
                     }
                   }
                 }
               })
               returnedToFile.set(true)
-              mySession.getDebugProcess().startStepOut(mySession.getSuspendContext())
+              mySession.debugProcess.startStepOut(mySession.suspendContext)
             }
             else {
               mySession.debugProcess.resume(mySession.suspendContext)
@@ -89,5 +72,26 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
         }
       }
     })
+  }
+
+  private fun getTraceResult(loadedClass: ClassType, chain: StreamChain, callback: TracingCallback): Boolean {
+    val reference = loadedClass.invokeMethod(
+      (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+      loadedClass.methodsByName("getResult")[0],
+      listOf(),
+      0)
+    if (reference is ArrayReference) {
+      val interpretedResult = try {
+        myResultInterpreter.interpret(chain, reference)
+      }
+      catch (t: Throwable) {
+        throw t
+      }
+      val context = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
+                                          (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
+      callback.evaluated(interpretedResult, context)
+      return true
+    }
+    return false
   }
 }
