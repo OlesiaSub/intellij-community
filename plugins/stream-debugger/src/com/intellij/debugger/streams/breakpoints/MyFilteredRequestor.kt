@@ -36,16 +36,74 @@ class MyFilteredRequestor(project: Project,
     return true
   }
 
+  private fun getParametersList(returnValue: Value, vm: VirtualMachine): MutableList<Value> {
+    var typeIndex = -1
+    val defaultInteger = vm.mirrorOf(0)
+    val defaultLong = vm.mirrorOf(0L)
+    val defaultChar = vm.mirrorOf(' ')
+    val defaultBoolean = vm.mirrorOf(true)
+    val defaultDouble = vm.mirrorOf(1.0)
+    val defaultFloat = vm.mirrorOf(1.0f)
+    when (returnValue) {
+      is IntegerValue -> {
+        typeIndex = 0
+        return mutableListOf(vm.mirrorOf(typeIndex), returnValue, defaultLong, defaultChar, defaultBoolean, defaultDouble, defaultFloat)
+      }
+      is LongValue -> {
+        typeIndex = 1
+        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, returnValue, defaultChar, defaultBoolean, defaultDouble, defaultFloat)
+      }
+      is CharValue -> {
+        typeIndex = 2
+        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, defaultLong, returnValue, defaultBoolean, defaultDouble, defaultFloat)
+      }
+      is BooleanValue -> {
+        typeIndex = 3
+        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, defaultLong, defaultChar, returnValue, defaultDouble, defaultFloat)
+      }
+      is DoubleValue -> {
+        typeIndex = 4
+        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, defaultLong, defaultChar, defaultBoolean, returnValue, defaultFloat)
+      }
+      is FloatValue -> {
+        typeIndex = 5
+        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, defaultLong, defaultChar, defaultBoolean, defaultDouble, returnValue)
+      }
+      else -> {
+        println("IN ELSE")
+      }
+    }
+    // todo byte, void, string, object
+    return mutableListOf()
+  }
+
+  private fun initializeResultTypes(event: MethodExitEvent, returnValue: Value) {
+    terminationCallReached = true
+    index++
+    val vm = event.virtualMachine()
+    val targetClass = vm.classesByName(targetClassName)[0]
+    if (targetClass is ClassType) {
+      targetClass.invokeMethod(event.thread(),
+                               targetClass.methodsByName("setReturnValue")[0],
+                               listOf(returnValue),
+                               //getParametersList(returnValue, vm),
+                               0)
+    }
+  }
+
   private fun handleMethodExitEvent(event: MethodExitEvent) {
     val returnValue = event.returnValue()
     if (index == chainsSize) {
+      //initializeResultTypes(event, returnValue)
       terminationCallReached = true
       index++
-      val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
+      val vm = event.virtualMachine()
+      val targetClass = vm.classesByName(targetClassName)[0]
       if (targetClass is ClassType) {
         targetClass.invokeMethod(event.thread(),
                                  targetClass.methodsByName("setReturnValue")[0],
                                  listOf(returnValue),
+          //getParametersList(returnValue, vm),
                                  0)
       }
     }

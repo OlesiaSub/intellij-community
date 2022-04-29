@@ -20,7 +20,7 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
 
   @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
           InvalidTypeException::class, EvaluateException::class)
-  fun loadClass() : ReferenceType? {
+  fun loadConsumerClass() : ReferenceType? {
     try {
       var classReference: ReferenceType? = null
       process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
@@ -46,5 +46,20 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
       e.printStackTrace()
     }
     return null
+  }
+
+  fun loadUtilClasses() {
+    process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
+                                                                       stackFrame.stackFrameProxy.threadProxy()) {
+      override fun getPriority(): PrioritizedTask.Priority {
+        return PrioritizedTask.Priority.HIGH
+      }
+
+      override fun threadAction(suspendContext: SuspendContextImpl) {
+        val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
+        val debugProcess = contextImpl.debugProcess
+        debugProcess.loadClass(contextImpl, "java.lang.String", classLoader)
+      }
+    })
   }
 }

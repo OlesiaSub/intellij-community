@@ -12,10 +12,13 @@ public class PeekConsumer {
   private static final AtomicInteger time = new AtomicInteger();
   private static Map<Integer, Object>[] peekArray;
   private static Object streamResult = null;
+  private static String toLoad = "kostyl";
+  private static java.lang.String toLoadFull = "full_kostyl";
 
   public static Consumer<Object>[] consumersArray;
 
   public static void init(int n) {
+    System.out.println(toLoad + toLoadFull);
     info = new Object[n];
     peekArray = new LinkedHashMap[n];
     for (int i = 0; i < n; i++) {
@@ -38,6 +41,43 @@ public class PeekConsumer {
     }
     else {
       peekArray[index].put(time.get(), value);
+    }
+  }
+
+  public static void setRetValue(int index,
+                                 int intValue,
+                                 long longValue,
+                                 char charValue,
+                                 boolean boolValue,
+                                 double doubleValue,
+                                 float floatValue) {
+    System.out.println("INDEX = " + index);
+    if (index == 0) {
+      System.out.println("in case 0");
+      streamResult = new int[]{intValue};
+    }
+    if (index == 1) {
+      System.out.println("in case 1");
+      streamResult = new long[]{longValue};
+    }
+    if (index == 2) {
+      System.out.println("in case 2");
+      streamResult = new char[]{charValue};
+    }
+    if (index == 3) {
+      System.out.println("in case 3");
+      streamResult = new boolean[]{boolValue};
+    }
+    if (index == 4) {
+      System.out.println("in case 4");
+      streamResult = new double[]{doubleValue};
+    }
+    if (index == 5) {
+      System.out.println("in case 5");
+      streamResult = new float[]{floatValue};
+    }
+    else {
+      System.out.println("DEFAULT");
     }
   }
 

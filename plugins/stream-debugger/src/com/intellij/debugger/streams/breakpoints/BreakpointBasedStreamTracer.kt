@@ -35,7 +35,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val classLoadingUtil = MyClassLoadingUtil(contextImpl,
                                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                               stackFrame)
-    classLoadingUtil.loadClass()
+    classLoadingUtil.loadConsumerClass()
+    classLoadingUtil.loadUtilClasses() // ниче не изменилось
     // todo add className to stream debugger bundle (another .properties file?)
     val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
@@ -56,7 +57,22 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
 
                 override fun threadAction(suspendContext: SuspendContextImpl) {
                   if (loadedClass is ClassType) {
-                    if (getTraceResult(loadedClass, chain, callback)) {
+                    val reference = loadedClass.invokeMethod(stackFrame.stackFrameProxy.threadProxy().threadReference,
+                    loadedClass.methodsByName("getResult")[0],
+                    listOf(),
+                    0)
+                    if (reference is ArrayReference) {
+                      val interpretedResult = try {
+                        myResultInterpreter.interpret(chain, reference)
+                      }
+                      catch (t: Throwable) {
+                        throw t
+                      }
+                      println(interpretedResult)
+                      //val context = (result as JavaValue).evaluationContext
+                      val context = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
+                                                          stackFrame.stackFrameProxy)
+                      callback.evaluated(interpretedResult, context)
                       return
                     }
                   }
