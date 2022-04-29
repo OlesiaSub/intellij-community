@@ -43,7 +43,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
     //breakpointSetter.setBreakpoint(chainReferences[0].containingFile, chainReferences[0].textOffset)
-    breakpointSetter.setRequest1()
+    breakpointSetter.setRequest()
     mySession.debugProcess.resume(mySession.suspendContext)
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
