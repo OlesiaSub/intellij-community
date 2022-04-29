@@ -10,18 +10,18 @@ import com.sun.jdi.*
 import com.sun.jdi.event.LocatableEvent
 import com.sun.jdi.event.MethodExitEvent
 
-// todo replace myMethodBp with it
 class MyFilteredRequestor(project: Project,
                          private val stackFrame: JavaStackFrame,
                          private val chainsSize: Int) : FilteredRequestorImpl(project) {
 
-  var methods: MutableSet<Method> = mutableSetOf()
+  private var methods: MutableSet<Method> = mutableSetOf()
+  private val targetClassName = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
 
   companion object {
     var index = 0
     var initialized = false
   }
-  // sus policy none
+  // suspend policy none
 
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
@@ -37,16 +37,25 @@ class MyFilteredRequestor(project: Project,
   }
 
   private fun handleMethodExitEvent(event: MethodExitEvent) {
-    println("event ${event.method()}")
     val returnValue = event.returnValue()
+    if (index == chainsSize) {
+      index++
+      val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
+      if (targetClass is ClassType) {
+        targetClass.invokeMethod(event.thread(),
+                                 targetClass.methodsByName("setReturnValue")[0],
+                                 listOf(returnValue),
+                                 0)
+      }
+    }
     if (returnValue is ObjectReference) {
       val runnableVal = runnable@{
-        val targetClass = event.virtualMachine().classesByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer")[0]
+        val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
         if (!initialized) {
           initialized = true;
           if (targetClass is ClassType) {
             targetClass.invokeMethod(event.thread(),
-                                     targetClass.methodsByName("init")[0],
+                                     targetClass.methodsByName("init")[0], // todo replace with constructor?
                                      listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(chainsSize)),
                                      0)
           }

@@ -34,24 +34,23 @@ class BreakpointSetter(private val project: Project,
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
-          val myMethodBreakpoint = MyMethodBreakpoint(breakpoint!!.project, breakpoint!!.xBreakpoint, process, myStackFrame, chainsSize)
-          val methodExitRequest1 = process.requestsManager.createMethodExitRequest(myMethodBreakpoint)
-          val methodExitRequest2 = process.requestsManager.createMethodExitRequest(myMethodBreakpoint)
+          val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chainsSize)
+          val methodExitRequest1 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
+          val methodExitRequest2 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           methodExitRequest1.addClassFilter("java.util.stream.ReferencePipeline")
           methodExitRequest2.addClassFilter("java.util.stream.StreamSupport")
           methodExitRequest1.enable()
           methodExitRequest2.enable()
         }
-      })
-    }
-    catch (e: VMDisconnectedException) {
-      println("Virtual Machine is disconnected.")
-    }
-    catch (e: Exception) {
-      e.printStackTrace()
-    }
+      }) } catch (e: VMDisconnectedException) {
+        println("Virtual Machine is disconnected.")
+      }
+      catch (e: Exception) {
+        e.printStackTrace()
+      }
   }
 
+  // unused
   fun setBreakpoint(currentFile: PsiFile, offset: Int): MethodBreakpoint? {
     val document = runReadAction { PsiDocumentManager.getInstance(project).getDocument(currentFile) } ?: return null
     var methodBreakpoint: MethodBreakpoint? = null

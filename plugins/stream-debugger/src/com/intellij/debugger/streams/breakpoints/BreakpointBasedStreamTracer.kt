@@ -42,8 +42,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     // todo add className to stream debugger bundle (another .properties file?)
     val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
-    breakpointSetter.setBreakpoint(chainReferences[0].containingFile, chainReferences[0].textOffset)
-    breakpointSetter.setRequest()
+    //breakpointSetter.setBreakpoint(chainReferences[0].containingFile, chainReferences[0].textOffset)
+    breakpointSetter.setRequest1()
     mySession.debugProcess.resume(mySession.suspendContext)
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
@@ -71,8 +71,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                       catch (t: Throwable) {
                          throw t
                       }
-                      println(interpretedResult)
-                      //val context = (result as JavaValue).evaluationContext
                       val context = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
                                                           stackFrame.stackFrameProxy)
                       callback.evaluated(interpretedResult, context)
