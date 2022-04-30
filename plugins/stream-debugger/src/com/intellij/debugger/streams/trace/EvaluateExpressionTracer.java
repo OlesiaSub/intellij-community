@@ -37,6 +37,7 @@ public class EvaluateExpressionTracer implements StreamTracer {
   @Override
   public void trace(@NotNull StreamChain chain, @NotNull TracingCallback callback) {
     final String streamTraceExpression = myExpressionBuilder.createTraceExpression(chain);
+    System.out.println(streamTraceExpression);
     final XStackFrame stackFrame = mySession.getCurrentStackFrame();
     final XDebuggerEvaluator evaluator = mySession.getDebugProcess().getEvaluator();
     if (stackFrame != null && evaluator != null) {

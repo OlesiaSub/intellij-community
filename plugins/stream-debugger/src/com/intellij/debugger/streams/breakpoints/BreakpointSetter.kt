@@ -6,6 +6,7 @@ import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.PrioritizedTask
+import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.debugger.ui.breakpoints.MethodBreakpoint
 import com.intellij.openapi.project.Project
 import com.sun.jdi.VMDisconnectedException
@@ -14,9 +15,7 @@ import com.sun.jdi.VMDisconnectedException
 class BreakpointSetter(private val project: Project,
                        private val process: DebugProcessImpl,
                        private val myStackFrame: JavaStackFrame,
-                       private val chainsSize: Int) {
-
-  var breakpoint: MethodBreakpoint? = null
+                       private val chain: StreamChain) {
 
   fun setRequest() {
     try {
@@ -28,7 +27,7 @@ class BreakpointSetter(private val project: Project,
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
-          val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chainsSize)
+          val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chain)
           val methodExitRequest1 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           val methodExitRequest2 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           methodExitRequest1.addClassFilter("java.util.stream.ReferencePipeline")

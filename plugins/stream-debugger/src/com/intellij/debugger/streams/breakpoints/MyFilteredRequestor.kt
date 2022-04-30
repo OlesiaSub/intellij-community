@@ -3,6 +3,7 @@ package com.intellij.debugger.streams.breakpoints
 
 import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
+import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.debugger.ui.breakpoints.FilteredRequestorImpl
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
@@ -12,7 +13,7 @@ import com.sun.jdi.event.MethodExitEvent
 
 class MyFilteredRequestor(project: Project,
                           private val stackFrame: JavaStackFrame,
-                          private val chainsSize: Int) : FilteredRequestorImpl(project) {
+                          private val chain: StreamChain) : FilteredRequestorImpl(project) {
 
   private var methods: MutableSet<Method> = mutableSetOf()
   private val targetClassName = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
@@ -37,13 +38,14 @@ class MyFilteredRequestor(project: Project,
   }
 
   private fun getParametersList(returnValue: Value, vm: VirtualMachine): MutableList<Value> {
-    var typeIndex = -1
+    val typeIndex: Int
     val defaultInteger = vm.mirrorOf(0)
     val defaultLong = vm.mirrorOf(0L)
     val defaultChar = vm.mirrorOf(' ')
     val defaultBoolean = vm.mirrorOf(true)
     val defaultDouble = vm.mirrorOf(1.0)
     val defaultFloat = vm.mirrorOf(1.0f)
+    val defaultVoid = vm.mirrorOfVoid();
     when (returnValue) {
       is IntegerValue -> {
         typeIndex = 0
@@ -83,29 +85,24 @@ class MyFilteredRequestor(project: Project,
     val vm = event.virtualMachine()
     val targetClass = vm.classesByName(targetClassName)[0]
     if (targetClass is ClassType) {
-      targetClass.invokeMethod(event.thread(),
-                               targetClass.methodsByName("setReturnValue")[0],
-                               listOf(returnValue),
-                               //getParametersList(returnValue, vm),
-                               0)
+      if (returnValue is ObjectReference) {
+        targetClass.invokeMethod(event.thread(),
+                                 targetClass.methodsByName("setRetValueObject")[0],
+                                 listOf(returnValue),
+                                 0)
+      } else {
+        targetClass.invokeMethod(event.thread(),
+                                 targetClass.methodsByName("setRetValue")[0],
+                                 getParametersList(returnValue, vm),
+                                 0)
+      }
     }
   }
 
   private fun handleMethodExitEvent(event: MethodExitEvent) {
     val returnValue = event.returnValue()
-    if (index == chainsSize) {
-      //initializeResultTypes(event, returnValue)
-      terminationCallReached = true
-      index++
-      val vm = event.virtualMachine()
-      val targetClass = vm.classesByName(targetClassName)[0]
-      if (targetClass is ClassType) {
-        targetClass.invokeMethod(event.thread(),
-                                 targetClass.methodsByName("setReturnValue")[0],
-                                 listOf(returnValue),
-          //getParametersList(returnValue, vm),
-                                 0)
-      }
+    if (event.method().name().equals(chain.terminationCall.name)) {
+      initializeResultTypes(event, returnValue)
     }
     if (returnValue is ObjectReference) {
       val runnableVal = runnable@{
@@ -113,9 +110,10 @@ class MyFilteredRequestor(project: Project,
         if (!initialized) {
           initialized = true;
           if (targetClass is ClassType) {
+            val chainSize = chain.intermediateCalls.size + 1
             targetClass.invokeMethod(event.thread(),
                                      targetClass.methodsByName("init")[0], // todo replace with constructor?
-                                     listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(chainsSize)),
+                                     listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(chainSize)),
                                      0)
           }
         }

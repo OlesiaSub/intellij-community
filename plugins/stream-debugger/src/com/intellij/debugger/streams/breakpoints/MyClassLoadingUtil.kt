@@ -20,7 +20,7 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
 
   @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
           InvalidTypeException::class, EvaluateException::class)
-  fun loadConsumerClass() : ReferenceType? {
+  fun loadConsumerClass(): ReferenceType? {
     try {
       var classReference: ReferenceType? = null
       process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
