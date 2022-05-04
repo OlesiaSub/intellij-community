@@ -35,6 +35,7 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
           ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
           val debugProcess = contextImpl.debugProcess
           classReference = debugProcess.loadClass(contextImpl, className, classLoader)
+          loadUtilClasses((classReference as ReferenceType).classLoader())
         }
       })
       return classReference
@@ -48,7 +49,8 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
     return null
   }
 
-  fun loadUtilClasses() {
+  // пыталась загрузить java.lang.String
+  fun loadUtilClasses(classLoader: ClassLoaderReference) {
     process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
                                                                        stackFrame.stackFrameProxy.threadProxy()) {
       override fun getPriority(): PrioritizedTask.Priority {
@@ -56,7 +58,7 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
       }
 
       override fun threadAction(suspendContext: SuspendContextImpl) {
-        val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
+        //val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
         val debugProcess = contextImpl.debugProcess
         debugProcess.loadClass(contextImpl, "java.lang.String", classLoader)
       }

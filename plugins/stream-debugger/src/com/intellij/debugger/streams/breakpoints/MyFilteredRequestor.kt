@@ -24,6 +24,7 @@ class MyFilteredRequestor(project: Project,
     var terminationCallReached = false
   }
 
+  // возвр значение посмотреть, чтобы остановки не было
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
     if (event is MethodExitEvent) {
@@ -46,6 +47,9 @@ class MyFilteredRequestor(project: Project,
     val defaultDouble = vm.mirrorOf(1.0)
     val defaultFloat = vm.mirrorOf(1.0f)
     val defaultVoid = vm.mirrorOfVoid();
+    //val a: ArrayType
+    //vm.allClasses(). взять array type и с ним уже работать
+    //a.newInstance(10)
     when (returnValue) {
       is IntegerValue -> {
         typeIndex = 0

@@ -3,10 +3,10 @@ package com.intellij.debugger.streams.breakpoints.consumers;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.lang.String;
 
 public class PeekConsumer {
 
@@ -15,13 +15,12 @@ public class PeekConsumer {
   private static AtomicInteger time;
   private static Map<Integer, Object>[] peekArray;
   private static Object streamResult;
-  private static String toLoad = "kostyl";
-  private static String toLoadFull = "full_kostyl";
+  private static String toLoad = "string";
 
   public static Consumer<Object>[] consumersArray;
 
   public static void init(int n) {
-    System.out.println(toLoad + toLoadFull);
+    System.out.println(toLoad);
     time = new AtomicInteger();
     streamResult = null;
     info = new Object[n];
@@ -52,6 +51,10 @@ public class PeekConsumer {
   public static void setRetValueObject(Object value) {
     System.out.println("set object ret val");
     streamResult = new Object[]{value};
+  }
+
+  public static void testString(String str) {
+    System.out.println("get string!!!" + str);
   }
 
   public static void setRetValue(int index,
@@ -86,10 +89,6 @@ public class PeekConsumer {
       System.out.println("in case 5");
       streamResult = new float[]{floatValue};
     }
-    //if (index == 6) {
-    //  System.out.println("in case 6");
-    //  streamResult = new Object[]{voidValue};
-    //}
   }
 
   public static Object getResult() {
