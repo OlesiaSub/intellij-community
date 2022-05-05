@@ -3,6 +3,7 @@ package com.intellij.debugger.streams.breakpoints.consumers;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -53,42 +54,9 @@ public class PeekConsumer {
     streamResult = new Object[]{value};
   }
 
-  public static void testString(String str) {
-    System.out.println("get string!!!" + str);
-  }
-
-  public static void setRetValue(int index,
-                                 int intValue,
-                                 long longValue,
-                                 char charValue,
-                                 boolean boolValue,
-                                 double doubleValue,
-                                 float floatValue) {
-    System.out.println("INDEX = " + index);
-    if (index == 0) {
-      System.out.println("in case 0");
-      streamResult = new int[]{intValue};
-    }
-    if (index == 1) {
-      System.out.println("in case 1");
-      streamResult = new long[]{longValue};
-    }
-    if (index == 2) {
-      System.out.println("in case 2");
-      streamResult = new char[]{charValue};
-    }
-    if (index == 3) {
-      System.out.println("in case 3");
-      streamResult = new boolean[]{boolValue};
-    }
-    if (index == 4) {
-      System.out.println("in case 4");
-      streamResult = new double[]{doubleValue};
-    }
-    if (index == 5) {
-      System.out.println("in case 5");
-      streamResult = new float[]{floatValue};
-    }
+  public static void setReturnValue(Object value) {
+    System.out.println("set array ret val");
+    streamResult = value;
   }
 
   public static Object getResult() {

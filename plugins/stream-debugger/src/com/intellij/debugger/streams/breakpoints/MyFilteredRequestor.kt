@@ -5,6 +5,7 @@ import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.debugger.ui.breakpoints.FilteredRequestorImpl
+import com.intellij.icons.AllIcons.Ide.Shadow
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.sun.jdi.*
@@ -38,49 +39,52 @@ class MyFilteredRequestor(project: Project,
     return true
   }
 
-  private fun getParametersList(returnValue: Value, vm: VirtualMachine): MutableList<Value> {
-    val typeIndex: Int
-    val defaultInteger = vm.mirrorOf(0)
-    val defaultLong = vm.mirrorOf(0L)
-    val defaultChar = vm.mirrorOf(' ')
-    val defaultBoolean = vm.mirrorOf(true)
-    val defaultDouble = vm.mirrorOf(1.0)
-    val defaultFloat = vm.mirrorOf(1.0f)
-    val defaultVoid = vm.mirrorOfVoid();
-    //val a: ArrayType
-    //vm.allClasses(). взять array type и с ним уже работать
-    //a.newInstance(10)
+  private fun getParametersList(returnValue: Value, vm: VirtualMachine): MutableList<ArrayReference?> {
+    var classes: List<ReferenceType>
     when (returnValue) {
       is IntegerValue -> {
-        typeIndex = 0
-        return mutableListOf(vm.mirrorOf(typeIndex), returnValue, defaultLong, defaultChar, defaultBoolean, defaultDouble, defaultFloat)
+        classes = vm.classesByName("int[]")
       }
       is LongValue -> {
-        typeIndex = 1
-        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, returnValue, defaultChar, defaultBoolean, defaultDouble, defaultFloat)
-      }
-      is CharValue -> {
-        typeIndex = 2
-        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, defaultLong, returnValue, defaultBoolean, defaultDouble, defaultFloat)
+        classes = vm.classesByName("long[]")
       }
       is BooleanValue -> {
-        typeIndex = 3
-        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, defaultLong, defaultChar, returnValue, defaultDouble, defaultFloat)
+        classes = vm.classesByName("boolean[]")
       }
       is DoubleValue -> {
-        typeIndex = 4
-        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, defaultLong, defaultChar, defaultBoolean, returnValue, defaultFloat)
+        classes = vm.classesByName("double[]")
       }
       is FloatValue -> {
-        typeIndex = 5
-        return mutableListOf(vm.mirrorOf(typeIndex), defaultInteger, defaultLong, defaultChar, defaultBoolean, defaultDouble, returnValue)
+        classes = vm.classesByName("float[]")
+      }
+      is ShortValue -> {
+        classes = vm.classesByName("short[]")
+      }
+      is ByteValue -> {
+        classes = vm.classesByName("byte[]")
+      }
+      is CharValue -> {
+        classes = vm.classesByName("char[]")
+      }
+      is VoidValue -> {
+        return mutableListOf(null)
+      }
+      is ObjectReference -> {
+        classes = vm.classesByName("char[]")
       }
       else -> {
-        println("IN ELSE")
+        classes = listOf()
       }
     }
+    if (classes.size != 1 || classes[0] !is ArrayType) {
+      return mutableListOf()
+    }
+    val arrayType = classes[0] as ArrayType
+    val arrayInstance = arrayType.newInstance(1)
+    arrayInstance.setValue(0, returnValue)
+
     // todo byte, void, string, object
-    return mutableListOf()
+    return mutableListOf(arrayInstance)
   }
 
   private fun initializeResultTypes(event: MethodExitEvent, returnValue: Value) {
@@ -89,17 +93,10 @@ class MyFilteredRequestor(project: Project,
     val vm = event.virtualMachine()
     val targetClass = vm.classesByName(targetClassName)[0]
     if (targetClass is ClassType) {
-      if (returnValue is ObjectReference) {
-        targetClass.invokeMethod(event.thread(),
-                                 targetClass.methodsByName("setRetValueObject")[0],
-                                 listOf(returnValue),
-                                 0)
-      } else {
-        targetClass.invokeMethod(event.thread(),
-                                 targetClass.methodsByName("setRetValue")[0],
-                                 getParametersList(returnValue, vm),
-                                 0)
-      }
+      targetClass.invokeMethod(event.thread(),
+                               targetClass.methodsByName("setReturnValue")[0],
+                               getParametersList(returnValue, vm),
+                               0)
     }
   }
 

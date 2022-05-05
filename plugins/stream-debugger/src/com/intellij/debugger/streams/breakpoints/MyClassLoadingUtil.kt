@@ -9,7 +9,7 @@ import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.ClassLoadingUtils
 import com.intellij.debugger.impl.PrioritizedTask
-import com.intellij.debugger.streams.breakpoints.consumers.ConsumerExtractor
+import com.intellij.debugger.streams.breakpoints.consumers.HandlerExtractor
 import com.sun.jdi.*
 
 class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
@@ -31,7 +31,7 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
           val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
-          val bytes = ConsumerExtractor().extractConsumer()
+          val bytes = HandlerExtractor().extractConsumer("PeekConsumer.class")
           ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
           val debugProcess = contextImpl.debugProcess
           classReference = debugProcess.loadClass(contextImpl, className, classLoader)

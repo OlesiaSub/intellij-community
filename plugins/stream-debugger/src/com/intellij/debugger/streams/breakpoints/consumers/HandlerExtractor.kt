@@ -3,9 +3,9 @@ package com.intellij.debugger.streams.breakpoints.consumers
 
 import org.apache.commons.io.IOUtils
 
-class ConsumerExtractor {
-  fun extractConsumer(): ByteArray {
-    val input = ConsumerExtractor::class.java.getResourceAsStream("PeekConsumer.class")
+class HandlerExtractor {
+  fun extractConsumer(className: String): ByteArray {
+    val input = HandlerExtractor::class.java.getResourceAsStream(className)
     return IOUtils.toByteArray(input)
   }
 }
