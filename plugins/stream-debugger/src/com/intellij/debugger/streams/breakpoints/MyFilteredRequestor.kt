@@ -70,7 +70,9 @@ class MyFilteredRequestor(project: Project,
         return mutableListOf(null)
       }
       is ObjectReference -> {
-        classes = vm.classesByName("char[]")
+        //vm.allClasses().forEach { println(it) }
+        classes = vm.classesByName("java.lang.Object[]")
+        // java.lang.String[]
       }
       else -> {
         classes = listOf()
@@ -105,7 +107,7 @@ class MyFilteredRequestor(project: Project,
     if (event.method().name().equals(chain.terminationCall.name)) {
       initializeResultTypes(event, returnValue)
     }
-    if (returnValue is ObjectReference) {
+    else if (returnValue is ObjectReference) {
       val runnableVal = runnable@{
         val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
         if (!initialized) {
@@ -121,7 +123,7 @@ class MyFilteredRequestor(project: Project,
         val field = targetClass.fieldByName("consumersArray")
         val fieldValue = targetClass.getValues(listOf(field))[field]
         var fieldValueByIndex: Value? = null
-        if (fieldValue is ArrayReference) {
+        if (fieldValue is ArrayReference && index < fieldValue.values.size) {
           fieldValueByIndex = fieldValue.getValue(index)
           index++
         }

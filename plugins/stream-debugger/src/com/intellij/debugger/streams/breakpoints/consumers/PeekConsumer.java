@@ -96,11 +96,12 @@ public class PeekConsumer {
         }
         afterArray = new Object[]{keys, values};
       }
-      if (index == peekArray.length) { // anyMatch
-        System.out.println("came here");
-        info[index - 1] = new Object[]{new Object[]{beforeArray, afterArray}, streamResult};
-      } else {
-        info[index - 1] = new Object[]{beforeArray, afterArray};
+      if (index == peekArray.length) {
+        info[index - 1] = new Object[]{new Object[]{beforeArray, afterArray}, new int[]{time.get()}}; // collect
+        //info[index - 1] = new Object[]{new Object[]{beforeArray, afterArray}, streamResult}; // anymatch
+      }
+      else {
+        info[index - 1] = new Object[]{beforeArray, afterArray}; // count
       }
     }
     final long[] elapsedTime = new long[]{System.nanoTime() - startTime};
