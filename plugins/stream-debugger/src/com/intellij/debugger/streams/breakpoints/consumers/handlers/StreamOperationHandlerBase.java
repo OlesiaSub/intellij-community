@@ -7,8 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class StreamOperationHandlerBase {
-  //void setOperationResult(int index); // indexing starts from 1
-
   public static Object[] basicPeekResultProcessing(int index) {
     Object[] beforeArray;
     Object[] afterArray;

@@ -38,10 +38,10 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                               stackFrame)
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer", "PeekConsumer.class")
-    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.BasicHandler",
-                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/BasicHandler.class")
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase",
                                      "/com/intellij/debugger/streams/breakpoints/consumers/handlers/StreamOperationHandlerBase.class")
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.BasicHandler",
+                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/BasicHandler.class")
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.AnyMatchHandler",
                                      "/com/intellij/debugger/streams/breakpoints/consumers/handlers/impl/terminal/AnyMatchHandler.class")
 
