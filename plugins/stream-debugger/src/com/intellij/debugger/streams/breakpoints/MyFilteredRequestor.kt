@@ -70,9 +70,7 @@ class MyFilteredRequestor(project: Project,
         return mutableListOf(null)
       }
       is ObjectReference -> {
-        //vm.allClasses().forEach { println(it) }
         classes = vm.classesByName("java.lang.Object[]")
-        // java.lang.String[]
       }
       else -> {
         classes = listOf()
@@ -84,8 +82,6 @@ class MyFilteredRequestor(project: Project,
     val arrayType = classes[0] as ArrayType
     val arrayInstance = arrayType.newInstance(1)
     arrayInstance.setValue(0, returnValue)
-
-    // todo byte, void, string, object
     return mutableListOf(arrayInstance)
   }
 

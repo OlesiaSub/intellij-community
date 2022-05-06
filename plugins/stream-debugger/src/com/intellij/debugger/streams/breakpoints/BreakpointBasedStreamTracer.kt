@@ -7,6 +7,7 @@ import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.PrioritizedTask
+import com.intellij.debugger.streams.breakpoints.consumers.handlers.HandlerAssigner
 import com.intellij.debugger.streams.trace.StreamTracer
 import com.intellij.debugger.streams.trace.TraceResultInterpreter
 import com.intellij.debugger.streams.trace.TracingCallback
@@ -35,11 +36,18 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val classLoadingUtil = MyClassLoadingUtil(contextImpl,
                                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                               stackFrame)
-    classLoadingUtil.loadConsumerClass()
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer", "PeekConsumer.class")
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.BasicHandler",
+                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/BasicHandler.class")
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase",
+                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/StreamOperationHandlerBase.class")
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.AnyMatchHandler",
+                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/impl/terminal/AnyMatchHandler.class")
+
+    //loadOperationsClasses(chain, classLoadingUtil, stackFrame)
     MyFilteredRequestor.terminationCallReached = false
     MyFilteredRequestor.initialized = false
     MyFilteredRequestor.index = 0
-    //classLoadingUtil.loadUtilClasses() // ниче не изменилось
     // todo add className to stream debugger bundle (another .properties file?)
     val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
@@ -60,12 +68,15 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                 }
 
                 override fun threadAction(suspendContext: SuspendContextImpl) {
+                  getTraceResultsForStreamChain(chain, classLoadingUtil, (mySession.currentStackFrame as JavaStackFrame))
                   if (loadedClass is ClassType) {
+                    println("in get result invocation")
                     reference = loadedClass.invokeMethod(
                       (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
                       loadedClass.methodsByName("getResult")[0],
                       listOf(),
                       0)
+                    println("got reference $reference")
                   }
                 }
               })
@@ -77,7 +88,9 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
             }
           }
           else {
+            println("reference $reference")
             if (reference is ArrayReference && reference != null) {
+              println("reference $reference here")
               interpretTraceResult(reference as ArrayReference, chain, callback)
             }
           }
@@ -96,5 +109,53 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val context = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
                                         (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
     callback.evaluated(interpretedResult, context)
+  }
+
+  private fun loadOperationsClasses(chain: StreamChain, classLoadingUtil: MyClassLoadingUtil, stackFrame: JavaStackFrame) {
+    chain.intermediateCalls.forEach { streamCall ->
+      run {
+        var className = HandlerAssigner.getHandlerByName(streamCall.name).toString().replace('.', '/')
+        className = "/" + className.substring(0, className.lastIndexOf('@'))
+        val nClassName = className.replace('/', '.').substring(1, className.length)
+        println("className $className   $nClassName")
+        classLoadingUtil.loadClassByName(nClassName, "$className.class")
+      }
+    }
+  }
+
+  private fun getTraceResultsForStreamChain(chain: StreamChain, classLoadingUtil: MyClassLoadingUtil, stackFrame: JavaStackFrame) {
+    var idx = 0
+    chain.intermediateCalls.forEachIndexed { index, streamCall ->
+      run {
+        idx = index
+        var className = HandlerAssigner.getHandlerByName(streamCall.name).toString()
+        className = className.substring(0, className.lastIndexOf('@'))
+        println("className $className")
+        val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
+        println("here loaded! " + index)
+        val method = loadedClass!!.methodsByName("setOperationResult")[0]
+        if (loadedClass is ClassType) {
+          loadedClass.invokeMethod(
+            stackFrame.stackFrameProxy.threadProxy().threadReference,
+            method,
+            listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(index + 1)),
+            0)
+        }
+      }
+    }
+    val streamCall = chain.terminationCall
+    var className = HandlerAssigner.getHandlerByName(streamCall.name).toString().replace('.', '/')
+    className = className.substring(0, className.lastIndexOf('@'))
+    println("className $className")
+    className = className.replace('/', '.')
+    val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
+    val method = loadedClass!!.methodsByName("setOperationResult")[0]
+    if (loadedClass is ClassType) {
+      loadedClass.invokeMethod(
+        stackFrame.stackFrameProxy.threadProxy().threadReference,
+        method,
+        listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(idx + 2)),
+        0)
+    }
   }
 }

@@ -70,6 +70,8 @@ public class SimplePeekCallTraceInterpreter implements CallTraceInterpreter {
   private static TraceElement resolveTraceElement(@NotNull Value key, @Nullable Value value) {
     if (key instanceof IntegerValue) {
       return new TraceElementImpl(((IntegerValue)key).value(), value);
+    } else {
+      System.out.println(key);
     }
 
     throw new UnexpectedValueException("key must be an integer value");
