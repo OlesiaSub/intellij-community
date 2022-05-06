@@ -17,11 +17,17 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
                          private val stackFrame: JavaStackFrame) {
 
   lateinit var classLoader: ClassLoaderReference
-  var fst = true
+  var fst = true // todo норально сделать
+  val loadedClasses: MutableSet<String> = mutableSetOf()
 
   @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
           InvalidTypeException::class, EvaluateException::class)
   fun loadClassByName(className: String, classNameToExtract: String): ReferenceType? {
+    if (loadedClasses.contains(className)) {
+      return null
+    }
+    loadedClasses.add(className)
+    println("loading class $className")
     try {
       var classReference: ReferenceType? = null
       process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
@@ -39,7 +45,6 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
           ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
           val debugProcess = contextImpl.debugProcess
           classReference = debugProcess.loadClass(contextImpl, className, classLoader)
-          //loadUtilClasses((classReference as ReferenceType).classLoader())
         }
       })
       return classReference
@@ -51,22 +56,5 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
       e.printStackTrace()
     }
     return null
-  }
-
-  // пыталась загрузить java.lang.String
-  // unused
-  fun loadUtilClasses(classLoader: ClassLoaderReference) {
-    process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
-                                                                       stackFrame.stackFrameProxy.threadProxy()) {
-      override fun getPriority(): PrioritizedTask.Priority {
-        return PrioritizedTask.Priority.HIGH
-      }
-
-      override fun threadAction(suspendContext: SuspendContextImpl) {
-        //val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
-        val debugProcess = contextImpl.debugProcess
-        debugProcess.loadClass(contextImpl, "java.lang.String", classLoader)
-      }
-    })
   }
 }

@@ -38,14 +38,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                               stackFrame)
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer", "PeekConsumer.class")
-    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase",
-                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/StreamOperationHandlerBase.class")
-    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.BasicHandler",
-                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/BasicHandler.class")
-    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.AnyMatchHandler",
-                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/impl/terminal/AnyMatchHandler.class")
-
-    //loadOperationsClasses(chain, classLoadingUtil, stackFrame)
+    loadOperationsClasses(chain, classLoadingUtil)
     MyFilteredRequestor.terminationCallReached = false
     MyFilteredRequestor.initialized = false
     MyFilteredRequestor.index = 0
@@ -108,15 +101,23 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     callback.evaluated(interpretedResult, context)
   }
 
-  private fun loadOperationsClasses(chain: StreamChain, classLoadingUtil: MyClassLoadingUtil, stackFrame: JavaStackFrame) {
+  private fun loadOperationsClasses(chain: StreamChain, classLoadingUtil: MyClassLoadingUtil) {
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase",
+                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/StreamOperationHandlerBase.class")
     chain.intermediateCalls.forEach { streamCall ->
       run {
-        var className = HandlerAssigner.getHandlerByName(streamCall.name).toString().replace('.', '/')
-        className = "/" + className.substring(0, className.lastIndexOf('@'))
-        val nClassName = className.replace('/', '.').substring(1, className.length)
-        classLoadingUtil.loadClassByName(nClassName, "$className.class")
+        loadHandlerClass(streamCall, classLoadingUtil)
       }
     }
+    loadHandlerClass(chain.terminationCall, classLoadingUtil)
+  }
+
+  private fun loadHandlerClass(streamCall: StreamCall, classLoadingUtil: MyClassLoadingUtil) {
+    var className = HandlerAssigner.getHandlerByName(streamCall.name).toString().replace('.', '/')
+    className = "/" + className.substring(0, className.lastIndexOf('@'))
+    val nClassName = className.replace('/', '.').substring(1, className.length)
+    println(nClassName + " " + "$className.class")
+    classLoadingUtil.loadClassByName(nClassName, "$className.class")
   }
 
   private fun getTraceResultsForStreamChain(chain: StreamChain, stackFrame: JavaStackFrame) {
