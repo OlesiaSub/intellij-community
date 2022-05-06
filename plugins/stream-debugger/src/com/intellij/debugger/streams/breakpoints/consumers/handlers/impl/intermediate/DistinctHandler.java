@@ -3,7 +3,7 @@ package com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.interm
 
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase;
 
-public class DistinctHandler extends StreamOperationHandlerBase {
+public class DistinctHandler {
   public void setOperationResult(int index) {
 
   }

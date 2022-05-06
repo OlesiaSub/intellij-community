@@ -11,6 +11,7 @@ import com.intellij.debugger.streams.breakpoints.consumers.handlers.HandlerAssig
 import com.intellij.debugger.streams.trace.StreamTracer
 import com.intellij.debugger.streams.trace.TraceResultInterpreter
 import com.intellij.debugger.streams.trace.TracingCallback
+import com.intellij.debugger.streams.wrapper.StreamCall
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.psi.PsiMethod
@@ -68,15 +69,13 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                 }
 
                 override fun threadAction(suspendContext: SuspendContextImpl) {
-                  getTraceResultsForStreamChain(chain, classLoadingUtil, (mySession.currentStackFrame as JavaStackFrame))
+                  getTraceResultsForStreamChain(chain, (mySession.currentStackFrame as JavaStackFrame))
                   if (loadedClass is ClassType) {
-                    println("in get result invocation")
                     reference = loadedClass.invokeMethod(
                       (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
                       loadedClass.methodsByName("getResult")[0],
                       listOf(),
                       0)
-                    println("got reference $reference")
                   }
                 }
               })
@@ -88,9 +87,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
             }
           }
           else {
-            println("reference $reference")
             if (reference is ArrayReference && reference != null) {
-              println("reference $reference here")
               interpretTraceResult(reference as ArrayReference, chain, callback)
             }
           }
@@ -117,44 +114,33 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
         var className = HandlerAssigner.getHandlerByName(streamCall.name).toString().replace('.', '/')
         className = "/" + className.substring(0, className.lastIndexOf('@'))
         val nClassName = className.replace('/', '.').substring(1, className.length)
-        println("className $className   $nClassName")
         classLoadingUtil.loadClassByName(nClassName, "$className.class")
       }
     }
   }
 
-  private fun getTraceResultsForStreamChain(chain: StreamChain, classLoadingUtil: MyClassLoadingUtil, stackFrame: JavaStackFrame) {
-    var idx = 0
-    chain.intermediateCalls.forEachIndexed { index, streamCall ->
+  private fun getTraceResultsForStreamChain(chain: StreamChain, stackFrame: JavaStackFrame) {
+    var index = 0
+    chain.intermediateCalls.forEachIndexed { currentIndex, streamCall ->
       run {
-        idx = index
-        var className = HandlerAssigner.getHandlerByName(streamCall.name).toString()
-        className = className.substring(0, className.lastIndexOf('@'))
-        println("className $className")
-        val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
-        println("here loaded! " + index)
-        val method = loadedClass!!.methodsByName("setOperationResult")[0]
-        if (loadedClass is ClassType) {
-          loadedClass.invokeMethod(
-            stackFrame.stackFrameProxy.threadProxy().threadReference,
-            method,
-            listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(index + 1)),
-            0)
-        }
+        index = currentIndex
+        invokeOperationResultSetter(streamCall, stackFrame, index)
       }
     }
     val streamCall = chain.terminationCall
-    var className = HandlerAssigner.getHandlerByName(streamCall.name).toString().replace('.', '/')
+    invokeOperationResultSetter(streamCall, stackFrame, index + 1)
+  }
+
+  private fun invokeOperationResultSetter(streamCall: StreamCall, stackFrame: JavaStackFrame, index: Int) {
+    var className = HandlerAssigner.getHandlerByName(streamCall.name).toString()
     className = className.substring(0, className.lastIndexOf('@'))
-    println("className $className")
-    className = className.replace('/', '.')
     val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
     val method = loadedClass!!.methodsByName("setOperationResult")[0]
     if (loadedClass is ClassType) {
       loadedClass.invokeMethod(
         stackFrame.stackFrameProxy.threadProxy().threadReference,
         method,
-        listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(idx + 2)),
+        listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(index + 1)),
         0)
     }
   }

@@ -11,7 +11,6 @@ public class PeekConsumer {
   public static AtomicInteger time;
   public static Map<Integer, Object>[] peekArray;
   public static Object streamResult;
-  //public static final List<StreamOperationHandlerBase> handlers = new ArrayList<>();
   public static Consumer<Object>[] consumersArray;
   private static long startTime;
 
@@ -36,7 +35,7 @@ public class PeekConsumer {
 
   public static void insertByIndex(int index, Object value) {
     if (index >= peekArray.length) {
-      System.out.println(">= " + index);
+      return;
     }
     else {
       peekArray[index].put(time.get(), value);
@@ -49,53 +48,8 @@ public class PeekConsumer {
 
   public static Object getResult() {
     Object myRes;
-    //for (int index = 1; index <= peekArray.length; index++) {
-    //  Map<Integer, Object> prev = peekArray[index - 1];
-    //  Map<Integer, Object> cur;
-    //  if (index == peekArray.length) {
-    //    cur = new HashMap<>(prev.size());
-    //  }
-    //  else {
-    //    cur = peekArray[index];
-    //  }
-    //  Object[] beforeArray;
-    //  {
-    //    final int size = prev.size();
-    //    final int[] keys = new int[size];
-    //    final Object[] values = new Object[size];
-    //    int i = 0;
-    //    for (int key : prev.keySet()) {
-    //      keys[i] = key;
-    //      values[i] = prev.get(key);
-    //      i++;
-    //    }
-    //    beforeArray = new Object[]{keys, values};
-    //  }
-    //  Object[] afterArray;
-    //  {
-    //    final int size = cur.size();
-    //    final int[] keys = new int[size];
-    //    final Object[] values = new Object[size];
-    //    int i = 0;
-    //    for (int key : cur.keySet()) {
-    //      keys[i] = key;
-    //      values[i] = cur.get(key);
-    //      i++;
-    //    }
-    //    afterArray = new Object[]{keys, values};
-    //  }
-    //  if (index == peekArray.length) {
-    //    info[index - 1] = new Object[]{new Object[]{beforeArray, afterArray}, new int[]{time.get()}}; // collect
-    //    //info[index - 1] = new Object[]{new Object[]{beforeArray, afterArray}, streamResult}; // anymatch
-    //  }
-    //  else {
-    //    info[index - 1] = new Object[]{beforeArray, afterArray}; // count
-    //  }
-    //}
-    System.out.println("in get res");
     final long[] elapsedTime = new long[]{System.nanoTime() - startTime};
     myRes = new Object[]{info, streamResult, elapsedTime};
-    System.out.println("myRes = " + myRes);
     return myRes;
   }
 }
