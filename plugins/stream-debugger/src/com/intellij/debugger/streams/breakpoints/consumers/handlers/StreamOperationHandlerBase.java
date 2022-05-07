@@ -8,14 +8,15 @@ import java.util.Map;
 
 public class StreamOperationHandlerBase {
   public static Object[] basicPeekResultProcessing(int index) {
-    Map<Integer, Object> prev = PeekConsumer.peekArray[index - 1];
-    Map<Integer, Object> cur = (index == PeekConsumer.peekArray.length ? new HashMap<>(prev.size()) : PeekConsumer.peekArray[index]);
-    return getBeforeAndAfterArrays(prev, cur);
+    Map<Integer, Object> beforeMap = PeekConsumer.peekArray[index - 1];
+    Map<Integer, Object> afterMap =
+      (index == PeekConsumer.peekArray.length ? new HashMap<>(beforeMap.size()) : PeekConsumer.peekArray[index]);
+    return getBeforeAndAfterArrays(beforeMap, afterMap);
   }
 
-  public static Object[] getBeforeAndAfterArrays(Map<Integer, Object> prev, Map<Integer, Object> cur) {
-    Object[] beforeArray = collectMapResult(prev);
-    Object[] afterArray = collectMapResult(cur);
+  public static Object[] getBeforeAndAfterArrays(Map<Integer, Object> beforeMap, Map<Integer, Object> afterMap) {
+    Object[] beforeArray = collectMapResult(beforeMap);
+    Object[] afterArray = collectMapResult(afterMap);
     return new Object[]{beforeArray, afterArray};
   }
 

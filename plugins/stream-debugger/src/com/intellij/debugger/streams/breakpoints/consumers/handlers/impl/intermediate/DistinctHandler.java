@@ -15,17 +15,17 @@ public class DistinctHandler extends StreamOperationHandlerBase {
   }
 
   public static Object[] distinctPeekResultProcessing(int index) {
-    Map<Integer, Object> prev = PeekConsumer.peekArray[index - 1];
-    Map<Integer, Object> cur = (index == PeekConsumer.peekArray.length ? new HashMap<>(prev.size()) : PeekConsumer.peekArray[index]);
+    Map<Integer, Object> beforeMap = PeekConsumer.peekArray[index - 1];
+    Map<Integer, Object> afterMap = (index == PeekConsumer.peekArray.length ? new HashMap<>(beforeMap.size()) : PeekConsumer.peekArray[index]);
     final Map<Integer, Integer> mapping = new LinkedHashMap<>();
     final Map<Object, Map<Integer, Object>> eqClasses = new HashMap<>();
-    for (int beforeTime : prev.keySet()) {
-      final Object beforeValue = prev.get(beforeTime);
+    for (int beforeTime : beforeMap.keySet()) {
+      final Object beforeValue = beforeMap.get(beforeTime);
       final Map<Integer, Object> classItems = eqClasses.computeIfAbsent(beforeValue, key -> new HashMap<>());
       classItems.put(beforeTime, beforeValue);
     }
-    for (int afterTime : cur.keySet()) {
-      final Object afterValue = cur.get(afterTime);
+    for (int afterTime : afterMap.keySet()) {
+      final Object afterValue = afterMap.get(afterTime);
       final Map<Integer, Object> classes = eqClasses.get(afterValue);
       for (int classElementTime : classes.keySet()) {
         mapping.put(classElementTime, afterTime);
@@ -44,7 +44,7 @@ public class DistinctHandler extends StreamOperationHandlerBase {
       }
       resolve = new Object[]{keys, values};
     }
-    final Object peekResult = getBeforeAndAfterArrays(prev, cur);
+    final Object peekResult = getBeforeAndAfterArrays(beforeMap, afterMap);
     return new Object[]{peekResult, resolve};
   }
 }
