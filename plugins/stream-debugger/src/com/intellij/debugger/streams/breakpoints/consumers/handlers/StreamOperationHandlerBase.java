@@ -8,41 +8,27 @@ import java.util.Map;
 
 public class StreamOperationHandlerBase {
   public static Object[] basicPeekResultProcessing(int index) {
-    Object[] beforeArray;
-    Object[] afterArray;
     Map<Integer, Object> prev = PeekConsumer.peekArray[index - 1];
-    Map<Integer, Object> cur;
-    if (index == PeekConsumer.peekArray.length) {
-      cur = new HashMap<>(prev.size());
-    }
-    else {
-      cur = PeekConsumer.peekArray[index];
-    }
-    {
-      final int size = prev.size();
-      final int[] keys = new int[size];
-      final Object[] values = new Object[size];
-      int i = 0;
-      for (int key : prev.keySet()) {
+    Map<Integer, Object> cur = (index == PeekConsumer.peekArray.length ? new HashMap<>(prev.size()) : PeekConsumer.peekArray[index]);
+    return getBeforeAndAfterArrays(prev, cur);
+  }
 
-        keys[i] = key;
-        values[i] = prev.get(key);
-        i++;
-      }
-      beforeArray = new Object[]{keys, values};
-    }
-    {
-      final int size = cur.size();
-      final int[] keys = new int[size];
-      final Object[] values = new Object[size];
-      int i = 0;
-      for (int key : cur.keySet()) {
-        keys[i] = key;
-        values[i] = cur.get(key);
-        i++;
-      }
-      afterArray = new Object[]{keys, values};
-    }
+  public static Object[] getBeforeAndAfterArrays(Map<Integer, Object> prev, Map<Integer, Object> cur) {
+    Object[] beforeArray = collectMapResult(prev);
+    Object[] afterArray = collectMapResult(cur);
     return new Object[]{beforeArray, afterArray};
+  }
+
+  public static Object[] collectMapResult(Map<Integer, Object> map) {
+    final int size = map.size();
+    final int[] keys = new int[size];
+    final Object[] values = new Object[size];
+    int i = 0;
+    for (int key : map.keySet()) {
+      keys[i] = key;
+      values[i] = map.get(key);
+      i++;
+    }
+    return new Object[]{keys, values};
   }
 }

@@ -113,7 +113,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
   }
 
   private fun loadHandlerClass(streamCall: StreamCall, classLoadingUtil: MyClassLoadingUtil) {
-    var className = HandlerAssigner.getHandlerByName(streamCall.name).toString().replace('.', '/')
+    var className = HandlerAssigner.handlersByName.get(streamCall.name).toString().replace('.', '/')
     className = "/" + className.substring(0, className.lastIndexOf('@'))
     val nClassName = className.replace('/', '.').substring(1, className.length)
     println(nClassName + " " + "$className.class")
@@ -133,7 +133,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
   }
 
   private fun invokeOperationResultSetter(streamCall: StreamCall, stackFrame: JavaStackFrame, index: Int) {
-    var className = HandlerAssigner.getHandlerByName(streamCall.name).toString()
+    var className = HandlerAssigner.handlersByName.get(streamCall.name).toString()
     className = className.substring(0, className.lastIndexOf('@'))
     val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
     val method = loadedClass!!.methodsByName("setOperationResult")[0]

@@ -3,20 +3,16 @@ package com.intellij.debugger.streams.breakpoints.consumers.handlers
 
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.intermediate.DistinctHandler
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.AnyMatchHandler
+import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.CollectHandler
 
 object HandlerAssigner {
-  //val handlersByName: MutableMap<String, StreamOperationHandlerBase> = mutableMapOf(
-  //  "map" to BasicHandler(),
-  //  "filter" to BasicHandler(),
-  //  "distinct" to DistinctHandler(),
-  //  "anyMatch" to AnyMatchHandler(),
-  //  "count" to BasicHandler()
-  //)
-  fun getHandlerByName(name: String) : Any? {
-    return when(name) {
-        "distinct" -> DistinctHandler()
-        "anyMatch" -> AnyMatchHandler()
-      else -> BasicHandler()
-    }
-  }
+  // todo separate intermediate and terminal
+  val handlersByName: MutableMap<String, Any> = mutableMapOf(
+    "map" to BasicHandler(),
+    "filter" to BasicHandler(),
+    "distinct" to DistinctHandler(),
+    "anyMatch" to AnyMatchHandler(),
+    "count" to BasicHandler(),
+    "collect" to CollectHandler()
+  )
 }
