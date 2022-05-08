@@ -121,6 +121,8 @@ public final class TraceStreamAction extends AnAction {
       @Override
       public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {
         final ResolvedTracingResult resolvedTrace = result.resolve(provider.getLibrarySupport().getResolverFactory());
+        System.out.println("resolved trace " + resolvedTrace);
+        System.out.println(resolvedTrace.getResult());
         ApplicationManager.getApplication()
           .invokeLater(() -> window.setTrace(resolvedTrace, context));
       }

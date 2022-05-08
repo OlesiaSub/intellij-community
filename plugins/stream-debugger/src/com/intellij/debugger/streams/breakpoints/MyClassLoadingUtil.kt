@@ -27,7 +27,6 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
       return null
     }
     loadedClasses.add(className)
-    println("loading class $className")
     try {
       var classReference: ReferenceType? = null
       process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,

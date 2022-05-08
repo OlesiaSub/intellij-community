@@ -105,19 +105,15 @@ public class EvaluationAwareTraceWindow extends DialogWrapper {
     if (Disposer.isDisposed(myDisposable)) {
       return;
     }
-
     final ResolvedStreamChain chain = resolvedTrace.getResolvedChain();
-
     assert chain.length() == myTabContents.size();
     final List<TraceControllerImpl> controllers = createControllers(resolvedTrace);
-
     if (controllers.isEmpty()) return;
     final List<TraceElement> trace = controllers.get(0).getTrace();
     final CollectionTree tree = new CollectionTree(trace, context);
     final CollectionView sourceView = new CollectionView(tree);
     controllers.get(0).register(sourceView);
     myTabContents.get(0).setContent(sourceView, BorderLayout.CENTER);
-
     for (int i = 1; i < myTabContents.size(); i++) {
       if (i == myTabContents.size() - 1 &&
           (resolvedTrace.exceptionThrown() ||
@@ -132,11 +128,11 @@ public class EvaluationAwareTraceWindow extends DialogWrapper {
       final StreamTracesMappingView view = new StreamTracesMappingView(context, previous, current);
       tab.setContent(view, BorderLayout.CENTER);
     }
-    
     final TraceElement result = resolvedTrace.getResult();
     final MyPlaceholder resultTab = myTabContents.get(myTabContents.size() - 1);
-
+    System.out.println("window 10");
     if (resolvedTrace.exceptionThrown()) {
+      System.out.println("window ex");
       JBLabel label = new JBLabel(StreamDebuggerBundle.message("tab.content.exception.thrown"), SwingConstants.CENTER);
       resultTab.setContent(label, BorderLayout.CENTER);
       setTitle(StreamDebuggerBundle.message("stream.debugger.dialog.with.exception.title"));
@@ -146,14 +142,16 @@ public class EvaluationAwareTraceWindow extends DialogWrapper {
       myTabsPane.setSelectedIndex(0);
     }
     else if (resolvedTrace.getSourceChain().getTerminationCall().getResultType().equals(JavaTypes.INSTANCE.getVOID())) {
+      System.out.println("window ok");
       JBLabel label = new JBLabel(StreamDebuggerBundle.message("tab.content.no.result"), SwingConstants.CENTER);
       resultTab.setContent(label, BorderLayout.CENTER);
     }
-
+    System.out.println("window 11");
     final FlatView flatView = new FlatView(controllers, context);
     myFlatContent.setContent(flatView, BorderLayout.CENTER);
     myCenterPane.revalidate();
     myCenterPane.repaint();
+    System.out.println("window 12");
   }
 
   public void setFailMessage(@NotNull @Nls String reason) {

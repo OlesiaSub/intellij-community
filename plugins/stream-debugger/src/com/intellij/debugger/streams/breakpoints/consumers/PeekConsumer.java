@@ -15,6 +15,7 @@ public class PeekConsumer {
   private static long startTime;
 
   public static void init(int n) {
+    System.out.println("init");
     time = new AtomicInteger();
     streamResult = null;
     info = new Object[n];
@@ -34,6 +35,7 @@ public class PeekConsumer {
   }
 
   public static void insertByIndex(int index, Object value) {
+    System.out.println("index ins");
     if (index >= peekArray.length) {
       return;
     }
@@ -47,9 +49,21 @@ public class PeekConsumer {
   }
 
   public static Object getResult() {
+    System.out.println("get res");
     Object myRes;
     final long[] elapsedTime = new long[]{System.nanoTime() - startTime};
+    System.out.println("got time");
+    System.out.println("info " + info);
+    System.out.println("s res " + streamResult);
+    for (Object o : info) {
+      if (o instanceof Object[]) {
+        for (Object oo : (Object[])o) {
+          System.out.println(oo);
+        }
+      } else System.out.println(o);
+    }
     myRes = new Object[]{info, streamResult, elapsedTime};
+    System.out.println("fin");
     return myRes;
   }
 }

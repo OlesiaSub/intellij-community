@@ -31,7 +31,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val breakpointSetter = BreakpointSetter(mySession.getProject(),
                                             (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                             stackFrame,
-                                            chain)
+                                            chain, mySession)
     val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
                                             stackFrame.stackFrameProxy)
     val classLoadingUtil = MyClassLoadingUtil(contextImpl,
@@ -42,6 +42,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     MyFilteredRequestor.terminationCallReached = false
     MyFilteredRequestor.initialized = false
     MyFilteredRequestor.index = 0
+    MyFilteredRequestor.toReturn = false
     // todo add className to stream debugger bundle (another .properties file?)
     val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
@@ -50,6 +51,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     var reference: Value? = null
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
+        println("paused 1")
         ApplicationManager.getApplication().invokeLater {
           if (!returnedToFile.get()) {
             if (MyFilteredRequestor.terminationCallReached) {
@@ -62,6 +64,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                 }
 
                 override fun threadAction(suspendContext: SuspendContextImpl) {
+                  println("paused")
                   getTraceResultsForStreamChain(chain, (mySession.currentStackFrame as JavaStackFrame))
                   if (loadedClass is ClassType) {
                     reference = loadedClass.invokeMethod(
@@ -81,6 +84,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
           }
           else {
             if (reference is ArrayReference && reference != null) {
+              println("HEREE")
               interpretTraceResult(reference as ArrayReference, chain, callback)
             }
           }
@@ -116,7 +120,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     var className = HandlerAssigner.handlersByName.get(streamCall.name).toString().replace('.', '/')
     className = "/" + className.substring(0, className.lastIndexOf('@'))
     val nClassName = className.replace('/', '.').substring(1, className.length)
-    println(nClassName + " " + "$className.class")
     classLoadingUtil.loadClassByName(nClassName, "$className.class")
   }
 
@@ -125,9 +128,11 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     chain.intermediateCalls.forEachIndexed { currentIndex, streamCall ->
       run {
         index = currentIndex
+        println("set intermediate")
         invokeOperationResultSetter(streamCall, stackFrame, index)
       }
     }
+    println("set terminal")
     val streamCall = chain.terminationCall
     invokeOperationResultSetter(streamCall, stackFrame, index + 1)
   }
@@ -135,13 +140,13 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
   private fun invokeOperationResultSetter(streamCall: StreamCall, stackFrame: JavaStackFrame, index: Int) {
     var className = HandlerAssigner.handlersByName.get(streamCall.name).toString()
     className = className.substring(0, className.lastIndexOf('@'))
-    val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
+    val loadedClass = (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.virtualMachine.classesByName(className)[0]
     val method = loadedClass!!.methodsByName("setOperationResult")[0]
     if (loadedClass is ClassType) {
       loadedClass.invokeMethod(
-        stackFrame.stackFrameProxy.threadProxy().threadReference,
+        (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
         method,
-        listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(index + 1)),
+        listOf((mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.virtualMachine.mirrorOf(index + 1)),
         0)
     }
   }

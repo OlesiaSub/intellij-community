@@ -1,46 +1,54 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.debugger.streams.breakpoints
 
+import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.JavaStackFrame
+import com.intellij.debugger.engine.SuspendContextImpl
+import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
+import com.intellij.debugger.impl.PrioritizedTask
+import com.intellij.debugger.settings.DebuggerSettings
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.debugger.ui.breakpoints.FilteredRequestorImpl
-import com.intellij.icons.AllIcons.Ide.Shadow
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.xdebugger.XDebugSession
 import com.sun.jdi.*
 import com.sun.jdi.event.LocatableEvent
 import com.sun.jdi.event.MethodExitEvent
 
 class MyFilteredRequestor(project: Project,
                           private val stackFrame: JavaStackFrame,
-                          private val chain: StreamChain) : FilteredRequestorImpl(project) {
+                          private val chain: StreamChain,
+                          private val mySession: XDebugSession?,
+                          private val process: DebugProcessImpl) : FilteredRequestorImpl(project) {
 
   private var methods: MutableSet<Method> = mutableSetOf()
   private val targetClassName = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
-
   companion object {
+    var toReturn = false
     var index = 0
     var initialized = false
     var terminationCallReached = false
   }
 
-  // возвр значение посмотреть, чтобы остановки не было
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
+    println("process loc event")
     if (event is MethodExitEvent) {
       if (methods.contains(event.method())) { // костыльно
         methods.remove(event.method())
-        return true
+        return toReturn
       }
       methods.add(event.method())
       handleMethodExitEvent(event)
+      println("in handle ${event.method()}")
     }
-    return true
+    return toReturn
   }
 
   private fun getParametersList(returnValue: Value, vm: VirtualMachine): MutableList<ArrayReference?> {
-    var classes: List<ReferenceType>
+    val classes: List<ReferenceType>
     when (returnValue) {
       is IntegerValue -> {
         classes = vm.classesByName("int[]")
@@ -64,6 +72,7 @@ class MyFilteredRequestor(project: Project,
         classes = vm.classesByName("byte[]")
       }
       is CharValue -> {
+
         classes = vm.classesByName("char[]")
       }
       is VoidValue -> {
@@ -86,16 +95,35 @@ class MyFilteredRequestor(project: Project,
   }
 
   private fun initializeResultTypes(event: MethodExitEvent, returnValue: Value) {
+    println("init res types")
+    toReturn = true
     terminationCallReached = true
+    //this.SUSPEND_POLICY = DebuggerSettings.SUSPEND_ALL
     index++
     val vm = event.virtualMachine()
     val targetClass = vm.classesByName(targetClassName)[0]
-    if (targetClass is ClassType) {
-      targetClass.invokeMethod(event.thread(),
-                               targetClass.methodsByName("setReturnValue")[0],
-                               getParametersList(returnValue, vm),
-                               0)
-    }
+    process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
+                                                                       stackFrame.stackFrameProxy.threadProxy()) {
+      override fun getPriority(): PrioritizedTask.Priority {
+        return PrioritizedTask.Priority.HIGH
+      }
+
+      override fun threadAction(suspendContext: SuspendContextImpl) {
+        println("hehehehe")
+        if (targetClass is ClassType) {
+          targetClass.invokeMethod((mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+                                   targetClass.methodsByName("setReturnValue")[0],
+                                   getParametersList(returnValue, vm),
+                                   0)
+        }
+      }
+    })
+    //if (targetClass is ClassType) {
+    //  targetClass.invokeMethod(event.thread(),
+    //                           targetClass.methodsByName("setReturnValue")[0],
+    //                           getParametersList(returnValue, vm),
+    //                           0)
+    //}
   }
 
   private fun handleMethodExitEvent(event: MethodExitEvent) {
@@ -103,32 +131,70 @@ class MyFilteredRequestor(project: Project,
     if (event.method().name().equals(chain.terminationCall.name)) {
       initializeResultTypes(event, returnValue)
     }
+    //else if (event.method().name().equals(chain.intermediateCalls.get(chain.intermediateCalls.size - 1).name)) {
+    //  this.SUSPEND_POLICY = DebuggerSettings.SUSPEND_ALL
+    //  toReturn = true
+    //}
     else if (returnValue is ObjectReference) {
       val runnableVal = runnable@{
+        println("in runnable")
         val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
-        if (!initialized) {
-          initialized = true;
-          if (targetClass is ClassType) {
-            val chainSize = chain.intermediateCalls.size + 1
-            targetClass.invokeMethod(event.thread(),
-                                     targetClass.methodsByName("init")[0], // todo replace with constructor?
-                                     listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(chainSize)),
-                                     0)
+        process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
+                                                                           stackFrame.stackFrameProxy.threadProxy()) {
+          override fun getPriority(): PrioritizedTask.Priority {
+            return PrioritizedTask.Priority.HIGH
+          }
+
+          override fun threadAction(suspendContext: SuspendContextImpl) {
+            if (!initialized) {
+              initialized = true;
+              if (targetClass is ClassType) {
+                val chainSize = chain.intermediateCalls.size + 1
+                targetClass.invokeMethod(
+                  (mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+                  targetClass.methodsByName("init")[0], // todo replace with constructor?
+                  listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(chainSize)),
+                  0)
+              }
+            }
+            val field = targetClass.fieldByName("consumersArray")
+            val fieldValue = targetClass.getValues(listOf(field))[field]
+            var fieldValueByIndex: Value? = null
+            if (fieldValue is ArrayReference && index < fieldValue.values.size) {
+              fieldValueByIndex = fieldValue.getValue(index)
+              index++
+            }
+            println("ret val = $returnValue")
+            val newReturnValue = returnValue
+              .invokeMethod((mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+                            returnValue.referenceType().methodsByName("peek")[0],
+                            listOf(fieldValueByIndex!!),
+                            0)
+            println("here in run $newReturnValue")
+            //event.thread().forceEarlyReturn(newReturnValue)
+            (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference.forceEarlyReturn(newReturnValue)
           }
         }
-        val field = targetClass.fieldByName("consumersArray")
-        val fieldValue = targetClass.getValues(listOf(field))[field]
-        var fieldValueByIndex: Value? = null
-        if (fieldValue is ArrayReference && index < fieldValue.values.size) {
-          fieldValueByIndex = fieldValue.getValue(index)
-          index++
-        }
-        val newReturnValue = returnValue
-          .invokeMethod(event.thread(),
-                        returnValue.referenceType().methodsByName("peek")[0],
-                        listOf(fieldValueByIndex!!),
-                        0)
-        event.thread().forceEarlyReturn(newReturnValue)
+        )
+        //val chainSize = chain.intermediateCalls.size + 1
+        //targetClass.invokeMethod((mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+        //                         targetClass.methodsByName("init")[0], // todo replace with constructor?
+        //                         listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(chainSize)),
+        //                         0)
+
+        //val field = targetClass.fieldByName("consumersArray")
+        //val fieldValue = targetClass.getValues(listOf(field))[field]
+        //var fieldValueByIndex: Value? = null
+        //if (fieldValue is ArrayReference && index < fieldValue.values.size) {
+        //  fieldValueByIndex = fieldValue.getValue(index)
+        //  index++
+        //}
+        //val newReturnValue = returnValue
+        //  .invokeMethod(event.thread(),
+        //                returnValue.referenceType().methodsByName("peek")[0],
+        //                listOf(fieldValueByIndex!!),
+        //                0)
+        //event.thread().forceEarlyReturn(newReturnValue)
         return@runnable
       }
       ApplicationManager.getApplication().invokeLater(runnableVal)
