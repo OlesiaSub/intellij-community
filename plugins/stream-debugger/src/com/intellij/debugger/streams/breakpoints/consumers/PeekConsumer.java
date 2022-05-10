@@ -35,7 +35,7 @@ public class PeekConsumer {
 
   public static void insertByIndex(int index, Object value) {
     if (index >= peekArray.length) {
-      return;
+      return; // todo
     }
     else {
       peekArray[index].put(time.get(), value);
@@ -43,6 +43,7 @@ public class PeekConsumer {
   }
 
   public static void setReturnValue(Object value) {
+    System.out.println("SET " + value);
     streamResult = value;
   }
 
