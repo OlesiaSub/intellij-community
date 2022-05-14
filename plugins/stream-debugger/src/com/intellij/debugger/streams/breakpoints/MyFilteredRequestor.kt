@@ -2,10 +2,13 @@
 package com.intellij.debugger.streams.breakpoints
 
 import com.intellij.debugger.engine.DebugProcessImpl
+import com.intellij.debugger.engine.JavaDebugProcess
 import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.SuspendContextImpl
+import com.intellij.debugger.engine.events.DebuggerCommandImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
+import com.intellij.debugger.engine.jdi.VirtualMachineProxy
 import com.intellij.debugger.impl.PrioritizedTask
 import com.intellij.debugger.settings.DebuggerSettings
 import com.intellij.debugger.streams.wrapper.StreamChain
@@ -25,6 +28,7 @@ class MyFilteredRequestor(project: Project,
 
   private var methods: MutableSet<Method> = mutableSetOf()
   private val targetClassName = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
+
   companion object {
     var toReturn = false
     var index = 0
@@ -34,20 +38,27 @@ class MyFilteredRequestor(project: Project,
 
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
-    println("process loc event")
+    //action.suspendContext!!.debugProcess.managerThread.invokeAndWait(object : DebuggerCommandImpl() {
+    //  override fun action() {
+    //    println("YEA IN ACTION")
+    //    this.hold()
+    //    println("IN ACTION WOW")
+    //    this.release()
+    //  }
+    //})
     if (event is MethodExitEvent) {
       if (methods.contains(event.method())) { // костыльно
         methods.remove(event.method())
-        return toReturn
+        return true
       }
       methods.add(event.method())
       handleMethodExitEvent(event)
       println("in handle ${event.method()}")
     }
-    return toReturn
+    return true
   }
 
-  private fun getParametersList(returnValue: Value, vm: VirtualMachine): MutableList<ArrayReference?> {
+  private fun getParametersList(returnValue: Value, vm: VirtualMachineProxy): MutableList<ArrayReference?> {
     val classes: List<ReferenceType>
     when (returnValue) {
       is IntegerValue -> {
@@ -100,24 +111,27 @@ class MyFilteredRequestor(project: Project,
     terminationCallReached = true
     //this.SUSPEND_POLICY = DebuggerSettings.SUSPEND_ALL
     index++
-    val vm = event.virtualMachine()
+    //val vm = event.virtualMachine()
+    val vm = (mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.virtualMachine
     val targetClass = vm.classesByName(targetClassName)[0]
-    process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
-                                                                       stackFrame.stackFrameProxy.threadProxy()) {
-      override fun getPriority(): PrioritizedTask.Priority {
-        return PrioritizedTask.Priority.HIGH
-      }
-
-      override fun threadAction(suspendContext: SuspendContextImpl) {
+    //(mySession!!.debugProcess as JavaDebugProcess).debuggerSession.process.managerThread.invoke(object : DebuggerCommandImpl() {
+    //  override fun getPriority(): PrioritizedTask.Priority {
+    //    return PrioritizedTask.Priority.HIGH
+    //  }
+    //
+    //  override fun action() {
         println("hehehehe")
         if (targetClass is ClassType) {
-          targetClass.invokeMethod((mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
-                                   targetClass.methodsByName("setReturnValue")[0],
-                                   getParametersList(returnValue, vm),
-                                   0)
+          targetClass.invokeMethod(
+            event.thread(),
+            //(mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+            targetClass.methodsByName("setReturnValue")[0],
+            getParametersList(returnValue, vm),
+            0)
         }
-      }
-    })
+    //  }
+    //})
+    //(mySession!!.debugProcess as JavaDebugProcess).debuggerSession.process.managerThread.processRemaining()
     //if (targetClass is ClassType) {
     //  targetClass.invokeMethod(event.thread(),
     //                           targetClass.methodsByName("setReturnValue")[0],
@@ -136,22 +150,27 @@ class MyFilteredRequestor(project: Project,
     //  toReturn = true
     //}
     else if (returnValue is ObjectReference) {
-      val runnableVal = runnable@{
-        println("in runnable")
-        val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
-        process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
-                                                                           stackFrame.stackFrameProxy.threadProxy()) {
-          override fun getPriority(): PrioritizedTask.Priority {
-            return PrioritizedTask.Priority.HIGH
-          }
+      //val runnableVal = runnable@{
+        println("IN RUNNABLE ${event.method()}")
+        //val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
+        val targetClass = (mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.virtualMachine.classesByName(targetClassName)[0]
+        //println("${event.thread()} THREADS11 ${(mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference} CURRENT ${Thread.currentThread()}" +
+        //        "MANAGER ${ (mySession!!.debugProcess as JavaDebugProcess).debuggerSession.process.managerThread}")
 
-          override fun threadAction(suspendContext: SuspendContextImpl) {
+        //(mySession!!.debugProcess as JavaDebugProcess).debuggerSession.process.managerThread.invoke(object : DebuggerCommandImpl() {
+        //  override fun getPriority(): PrioritizedTask.Priority {
+        //    return PrioritizedTask.Priority.HIGH
+        //  }
+        //
+        //  override fun action() {
             if (!initialized) {
               initialized = true;
               if (targetClass is ClassType) {
                 val chainSize = chain.intermediateCalls.size + 1
+                println("filtered req in INIT")
                 targetClass.invokeMethod(
-                  (mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+                  //(mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+                  event.thread(),
                   targetClass.methodsByName("init")[0], // todo replace with constructor?
                   listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(chainSize)),
                   0)
@@ -164,18 +183,19 @@ class MyFilteredRequestor(project: Project,
               fieldValueByIndex = fieldValue.getValue(index)
               index++
             }
-            println("ret val = $returnValue")
-            val newReturnValue = returnValue
-              .invokeMethod((mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
-                            returnValue.referenceType().methodsByName("peek")[0],
-                            listOf(fieldValueByIndex!!),
-                            0)
+            println("ret val = $returnValue ${fieldValueByIndex}")
+            val newReturnValue = returnValue.invokeMethod(
+              //(mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+              event.thread(),
+              returnValue.referenceType().methodsByName("peek")[0],
+              listOf(fieldValueByIndex!!),
+              1)
             println("here in run $newReturnValue")
-            //event.thread().forceEarlyReturn(newReturnValue)
-            (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference.forceEarlyReturn(newReturnValue)
-          }
-        }
-        )
+            event.thread().forceEarlyReturn(newReturnValue)
+            //(mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference.forceEarlyReturn(newReturnValue)
+          //}
+        //}
+        //)
         //val chainSize = chain.intermediateCalls.size + 1
         //targetClass.invokeMethod((mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
         //                         targetClass.methodsByName("init")[0], // todo replace with constructor?
@@ -195,9 +215,10 @@ class MyFilteredRequestor(project: Project,
         //                listOf(fieldValueByIndex!!),
         //                0)
         //event.thread().forceEarlyReturn(newReturnValue)
-        return@runnable
-      }
-      ApplicationManager.getApplication().invokeLater(runnableVal)
+        //(mySession!!.debugProcess as JavaDebugProcess).debuggerSession.process.managerThread.processRemaining()
+      //  return@runnable
+      //}
+      //ApplicationManager.getApplication().invokeAndWait(runnableVal)
     }
   }
 }

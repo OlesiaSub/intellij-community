@@ -6,6 +6,7 @@ import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.PrioritizedTask
+import com.intellij.debugger.settings.DebuggerSettings
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.project.Project
 import com.intellij.xdebugger.XDebugSession
@@ -29,7 +30,7 @@ class BreakpointSetter(private val project: Project,
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
           val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chain, mySession, process)
-          //myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_THREAD
+          myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_NONE
           val methodExitRequest1 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           val methodExitRequest2 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           methodExitRequest1.addClassFilter("java.util.stream.ReferencePipeline")
