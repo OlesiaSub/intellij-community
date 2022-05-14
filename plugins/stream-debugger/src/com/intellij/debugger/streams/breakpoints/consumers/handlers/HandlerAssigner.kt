@@ -12,6 +12,7 @@ object HandlerAssigner {
     "mapToInt" to BasicHandler(),
     "mapToDouble" to BasicHandler(),
     "mapToLong" to BasicHandler(),
+    "mapToObj" to BasicHandler(),
     "flatMap" to BasicHandler(),
     "flatMapToInt" to BasicHandler(),
     "flatMapToDouble" to BasicHandler(),
