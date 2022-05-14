@@ -73,6 +73,7 @@ class MyFilteredRequestor(project: Project,
         classes = vm.classesByName("java.lang.Object[]")
       }
       else -> {
+        println("ELSE") // todo обработать
         classes = listOf()
       }
     }

@@ -43,7 +43,6 @@ public class PeekConsumer {
   }
 
   public static void setReturnValue(Object value) {
-    System.out.println("SET " + value);
     streamResult = value;
   }
 

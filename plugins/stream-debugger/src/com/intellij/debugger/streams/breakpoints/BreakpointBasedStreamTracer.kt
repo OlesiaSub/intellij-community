@@ -107,14 +107,14 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                                      "/com/intellij/debugger/streams/breakpoints/consumers/handlers/StreamOperationHandlerBase.class")
     chain.intermediateCalls.forEach { streamCall ->
       run {
-        loadHandlerClass(streamCall, classLoadingUtil)
+        loadHandlerClass(classLoadingUtil, HandlerAssigner.intermediateHandlersByName.get(streamCall.name).toString())
       }
     }
-    loadHandlerClass(chain.terminationCall, classLoadingUtil)
+    loadHandlerClass(classLoadingUtil, HandlerAssigner.terminalHandlersByName.get(chain.terminationCall.name).toString())
   }
 
-  private fun loadHandlerClass(streamCall: StreamCall, classLoadingUtil: MyClassLoadingUtil) {
-    var className = HandlerAssigner.handlersByName.get(streamCall.name).toString().replace('.', '/')
+  private fun loadHandlerClass(classLoadingUtil: MyClassLoadingUtil, handlerClassName: String) {
+    var className = handlerClassName.replace('.', '/')
     className = "/" + className.substring(0, className.lastIndexOf('@'))
     val nClassName = className.replace('/', '.').substring(1, className.length)
     classLoadingUtil.loadClassByName(nClassName, "$className.class")
@@ -125,16 +125,16 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     chain.intermediateCalls.forEachIndexed { currentIndex, streamCall ->
       run {
         index = currentIndex
-        invokeOperationResultSetter(streamCall, stackFrame, index)
+        invokeOperationResultSetter(stackFrame, index, HandlerAssigner.intermediateHandlersByName.get(streamCall.name).toString())
       }
     }
     val streamCall = chain.terminationCall
-    invokeOperationResultSetter(streamCall, stackFrame, index + 1)
+    invokeOperationResultSetter(stackFrame, if (chain.intermediateCalls.size == 0) 0 else index + 1,
+                                HandlerAssigner.terminalHandlersByName.get(streamCall.name).toString())
   }
 
-  private fun invokeOperationResultSetter(streamCall: StreamCall, stackFrame: JavaStackFrame, index: Int) {
-    var className = HandlerAssigner.handlersByName.get(streamCall.name).toString()
-    className = className.substring(0, className.lastIndexOf('@'))
+  private fun invokeOperationResultSetter(stackFrame: JavaStackFrame, index: Int, handlerClassName: String) {
+    val className = handlerClassName.substring(0, handlerClassName.lastIndexOf('@'))
     val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
     val method = loadedClass!!.methodsByName("setOperationResult")[0]
     if (loadedClass is ClassType) {

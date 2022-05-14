@@ -2,25 +2,46 @@
 package com.intellij.debugger.streams.breakpoints.consumers.handlers
 
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.intermediate.DistinctHandler
-import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.AnyMatchHandler
+import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.MatchHandler
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.CollectHandler
-import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.MaxMinHandler
+import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.OptionalResultHandler
 
 object HandlerAssigner {
-  // todo separate intermediate and terminal
-  val handlersByName: MutableMap<String, Any> = mutableMapOf(
+  val intermediateHandlersByName: MutableMap<String, Any> = mutableMapOf(
     "map" to BasicHandler(),
+    "mapToInt" to BasicHandler(),
+    "mapToDouble" to BasicHandler(),
+    "mapToLong" to BasicHandler(),
+    "flatMap" to BasicHandler(),
+    "flatMapToInt" to BasicHandler(),
+    "flatMapToDouble" to BasicHandler(),
+    "flatMapToLong" to BasicHandler(),
     "filter" to BasicHandler(),
-    "distinct" to DistinctHandler(),
-    "noneMatch" to AnyMatchHandler(),
-    "allMatch" to AnyMatchHandler(),
-    "anyMatch" to AnyMatchHandler(),
+    "peek" to BasicHandler(),
     "sorted" to BasicHandler(),
     "dropWhile" to BasicHandler(),
+    "takeWhile" to BasicHandler(),
+    "skip" to BasicHandler(),
+    "limit" to BasicHandler(),
+    "parallel" to BasicHandler(), // todo переделывает в seq
+    "onClose" to BasicHandler(),
+    "boxed" to BasicHandler(),
+    "distinct" to DistinctHandler()
+  )
+
+  val terminalHandlersByName: MutableMap<String, Any> = mutableMapOf(
     "count" to BasicHandler(),
+    "sum" to BasicHandler(),
+    "forEach" to BasicHandler(),
+    "forEachOrdered" to BasicHandler(),
+    "anyMatch" to MatchHandler(),
+    "allMatch" to MatchHandler(),
+    "noneMatch" to MatchHandler(),
     "collect" to CollectHandler(),
     "toArray" to CollectHandler(),
-    "max" to MaxMinHandler(),
-    "min" to MaxMinHandler()
+    "max" to OptionalResultHandler(),
+    "min" to OptionalResultHandler(),
+    "findAny" to OptionalResultHandler(),
+    "findFirst" to OptionalResultHandler()
   )
 }

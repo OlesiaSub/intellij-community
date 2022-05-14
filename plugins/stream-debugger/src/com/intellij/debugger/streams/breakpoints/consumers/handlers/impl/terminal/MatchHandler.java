@@ -4,7 +4,7 @@ package com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.termin
 import com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer;
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase;
 
-public class AnyMatchHandler extends StreamOperationHandlerBase {
+public class MatchHandler extends StreamOperationHandlerBase {
   public static void setOperationResult(int index) {
     Object[] processingResult = basicPeekResultProcessing(index);
     PeekConsumer.info[index - 1] = new Object[]{processingResult, PeekConsumer.streamResult};

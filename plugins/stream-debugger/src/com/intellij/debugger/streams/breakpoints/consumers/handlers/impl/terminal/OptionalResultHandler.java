@@ -3,11 +3,10 @@ package com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.termin
 
 import com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer;
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase;
-import com.intellij.openapi.util.InvalidDataException;
 
 import java.util.Optional;
 
-public class MaxMinHandler extends StreamOperationHandlerBase {
+public class OptionalResultHandler extends StreamOperationHandlerBase {
   public static void setOperationResult(int index) {
     Object[] processingResult = basicPeekResultProcessing(index);
     Object result = PeekConsumer.streamResult;
