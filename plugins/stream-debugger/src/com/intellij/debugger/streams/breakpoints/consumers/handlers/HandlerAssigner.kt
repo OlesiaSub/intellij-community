@@ -19,8 +19,8 @@ object HandlerAssigner {
     "dropWhile" to BasicHandler(),
     "count" to BasicHandler(),
     "collect" to CollectHandler(),
-    "toArray" to CollectHandler()
-    //"max" to MaxMinHandler(),
-    //"min" to MaxMinHandler()
+    "toArray" to CollectHandler(),
+    "max" to MaxMinHandler(),
+    "min" to MaxMinHandler()
   )
 }

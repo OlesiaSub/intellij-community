@@ -21,11 +21,11 @@ class MyFilteredRequestor(project: Project,
 
   companion object {
     var index = 0
+    var chainMethodIndex = 0
     var initialized = false
     var terminationCallReached = false
   }
 
-  // возвр значение посмотреть, чтобы остановки не было
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
     if (event is MethodExitEvent) {
@@ -41,7 +41,6 @@ class MyFilteredRequestor(project: Project,
 
   private fun getParametersList(returnValue: Value, vm: VirtualMachine): MutableList<ArrayReference?> {
     var classes: List<ReferenceType>
-    println("get params list $returnValue ${returnValue.type()} ${returnValue.javaClass}")
     when (returnValue) {
       is IntegerValue -> {
         classes = vm.classesByName("int[]")
@@ -104,12 +103,12 @@ class MyFilteredRequestor(project: Project,
     if (event.method().name().equals(chain.terminationCall.name)) {
       initializeResultTypes(event, returnValue)
     }
-    else if (returnValue is ObjectReference) {
-      var contains = false
-      //chain.intermediateCalls.forEach { if (it.name.equals(event.method().name())) contains = true }
-      //if (chain.terminationCall.name.equals(event.method().name())) contains = true
-      //println("CONTAINS ${event.method().name()} $contains")
-      //if (!contains) return
+    else if (returnValue is ObjectReference
+      && ((chainMethodIndex < chain.intermediateCalls.size && event.method().name().equals(chain.intermediateCalls.get(chainMethodIndex).name))
+        || (chainMethodIndex == chain.intermediateCalls.size && event.method().name().equals(chain.terminationCall.name)) || (event.method().name().equals("stream")))) {
+      if (!event.method().name().equals("stream")) {
+        chainMethodIndex++
+      }
       val runnableVal = runnable@{
         val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
         if (!initialized) {
@@ -129,11 +128,6 @@ class MyFilteredRequestor(project: Project,
           fieldValueByIndex = fieldValue.getValue(index)
           index++
         }
-        println(event.method().name())
-        println(fieldValueByIndex)
-        println(returnValue)
-        println(returnValue.referenceType())
-        println(returnValue.referenceType().methodsByName("peek"))
         val newReturnValue = returnValue
           .invokeMethod(event.thread(),
                         returnValue.referenceType().methodsByName("peek")[0],

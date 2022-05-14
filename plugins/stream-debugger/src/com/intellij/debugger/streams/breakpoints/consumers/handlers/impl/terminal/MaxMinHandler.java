@@ -7,17 +7,13 @@ import com.intellij.openapi.util.InvalidDataException;
 
 import java.util.Optional;
 
-// todo пока не работает, вызывает внутри reduce
 public class MaxMinHandler extends StreamOperationHandlerBase {
   public static void setOperationResult(int index) {
     Object[] processingResult = basicPeekResultProcessing(index);
     Object result = PeekConsumer.streamResult;
-    if (result instanceof Optional[]) {
-      Optional[] optionalResult = (Optional[])result;
-      PeekConsumer.info[index - 1] = new Object[]{processingResult,
-        new Object[]{new boolean[]{optionalResult[0].isPresent()}, new Object[]{optionalResult[0].orElse(new Object())}}};
-    } else {
-      System.out.println("not optional(((");
-    }
+    assert result instanceof Object[];
+    Object[] arrayResult = (Object[])result;
+    PeekConsumer.info[index - 1] = new Object[]{processingResult,
+      new Object[]{new boolean[]{((Optional)arrayResult[0]).isPresent()}, new Object[]{((Optional)arrayResult[0]).orElse(new Object())}}};
   }
 }

@@ -42,6 +42,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     MyFilteredRequestor.terminationCallReached = false
     MyFilteredRequestor.initialized = false
     MyFilteredRequestor.index = 0
+    MyFilteredRequestor.chainMethodIndex = 0
     // todo add className to stream debugger bundle (another .properties file?)
     val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
@@ -116,7 +117,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     var className = HandlerAssigner.handlersByName.get(streamCall.name).toString().replace('.', '/')
     className = "/" + className.substring(0, className.lastIndexOf('@'))
     val nClassName = className.replace('/', '.').substring(1, className.length)
-    println(nClassName + " " + "$className.class")
     classLoadingUtil.loadClassByName(nClassName, "$className.class")
   }
 
