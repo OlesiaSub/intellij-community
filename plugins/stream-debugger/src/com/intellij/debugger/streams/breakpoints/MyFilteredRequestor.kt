@@ -105,8 +105,10 @@ class MyFilteredRequestor(project: Project,
       initializeResultTypes(event, returnValue)
     }
     else if (returnValue is ObjectReference
-      && ((chainMethodIndex < chain.intermediateCalls.size && event.method().name().equals(chain.intermediateCalls.get(chainMethodIndex).name))
-        || (chainMethodIndex == chain.intermediateCalls.size && event.method().name().equals(chain.terminationCall.name)) || (event.method().name().equals("stream")))) {
+             && ((chainMethodIndex < chain.intermediateCalls.size && event.method().name().equals(
+        chain.intermediateCalls.get(chainMethodIndex).name))
+                 || (chainMethodIndex == chain.intermediateCalls.size && event.method().name().equals(
+        chain.terminationCall.name)) || (event.method().name().equals("stream")))) {
       if (!event.method().name().equals("stream")) {
         chainMethodIndex++
       }
@@ -129,27 +131,20 @@ class MyFilteredRequestor(project: Project,
           fieldValueByIndex = fieldValue.getValue(index)
           index++
         }
+        var valueToReturn = returnValue
         if (event.method().name().equals("parallel")) {
-          val seqReturnValue = returnValue
+          valueToReturn = returnValue
             .invokeMethod(event.thread(),
                           returnValue.referenceType().methodsByName("sequential")[0],
                           listOf(),
                           0)
-          val newReturnValue = (seqReturnValue as ObjectReference)
-            .invokeMethod(event.thread(),
-                          returnValue.referenceType().methodsByName("peek")[0],
-                          listOf(fieldValueByIndex!!),
-                          0)
-          event.thread().forceEarlyReturn(newReturnValue)
         }
-        else {
-          val newReturnValue = returnValue
-            .invokeMethod(event.thread(),
-                          returnValue.referenceType().methodsByName("peek")[0],
-                          listOf(fieldValueByIndex!!),
-                          0)
-          event.thread().forceEarlyReturn(newReturnValue)
-        }
+        val newReturnValue = (valueToReturn as ObjectReference)
+          .invokeMethod(event.thread(),
+                        returnValue.referenceType().methodsByName("peek")[0],
+                        listOf(fieldValueByIndex!!),
+                        0)
+        event.thread().forceEarlyReturn(newReturnValue)
         return@runnable
       }
       ApplicationManager.getApplication().invokeLater(runnableVal)
