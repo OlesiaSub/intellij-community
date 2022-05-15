@@ -129,12 +129,27 @@ class MyFilteredRequestor(project: Project,
           fieldValueByIndex = fieldValue.getValue(index)
           index++
         }
-        val newReturnValue = returnValue
-          .invokeMethod(event.thread(),
-                        returnValue.referenceType().methodsByName("peek")[0],
-                        listOf(fieldValueByIndex!!),
-                        0)
-        event.thread().forceEarlyReturn(newReturnValue)
+        if (event.method().name().equals("parallel")) {
+          val seqReturnValue = returnValue
+            .invokeMethod(event.thread(),
+                          returnValue.referenceType().methodsByName("sequential")[0],
+                          listOf(),
+                          0)
+          val newReturnValue = (seqReturnValue as ObjectReference)
+            .invokeMethod(event.thread(),
+                          returnValue.referenceType().methodsByName("peek")[0],
+                          listOf(fieldValueByIndex!!),
+                          0)
+          event.thread().forceEarlyReturn(newReturnValue)
+        }
+        else {
+          val newReturnValue = returnValue
+            .invokeMethod(event.thread(),
+                          returnValue.referenceType().methodsByName("peek")[0],
+                          listOf(fieldValueByIndex!!),
+                          0)
+          event.thread().forceEarlyReturn(newReturnValue)
+        }
         return@runnable
       }
       ApplicationManager.getApplication().invokeLater(runnableVal)
