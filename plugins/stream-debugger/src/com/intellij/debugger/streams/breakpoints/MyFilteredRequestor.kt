@@ -4,16 +4,13 @@ package com.intellij.debugger.streams.breakpoints
 import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.JavaDebugProcess
 import com.intellij.debugger.engine.JavaStackFrame
-import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.debugger.engine.events.DebuggerCommandImpl
-import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
 import com.intellij.debugger.engine.jdi.VirtualMachineProxy
+import com.intellij.debugger.impl.InvokeThread
 import com.intellij.debugger.impl.PrioritizedTask
-import com.intellij.debugger.settings.DebuggerSettings
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.debugger.ui.breakpoints.FilteredRequestorImpl
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.xdebugger.XDebugSession
 import com.sun.jdi.*
@@ -157,20 +154,20 @@ class MyFilteredRequestor(project: Project,
         //println("${event.thread()} THREADS11 ${(mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference} CURRENT ${Thread.currentThread()}" +
         //        "MANAGER ${ (mySession!!.debugProcess as JavaDebugProcess).debuggerSession.process.managerThread}")
 
-        //(mySession!!.debugProcess as JavaDebugProcess).debuggerSession.process.managerThread.invoke(object : DebuggerCommandImpl() {
-        //  override fun getPriority(): PrioritizedTask.Priority {
-        //    return PrioritizedTask.Priority.HIGH
-        //  }
-        //
-        //  override fun action() {
+      val request = InvokeThread.getCurrentThreadRequest().owner.schedule(object : DebuggerCommandImpl() {
+          override fun getPriority(): PrioritizedTask.Priority {
+            return PrioritizedTask.Priority.HIGH
+          }
+
+          override fun action() {
             if (!initialized) {
               initialized = true;
               if (targetClass is ClassType) {
                 val chainSize = chain.intermediateCalls.size + 1
                 println("filtered req in INIT")
                 targetClass.invokeMethod(
-                  //(mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
-                  event.thread(),
+                  (mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
+                  //event.thread(),
                   targetClass.methodsByName("init")[0], // todo replace with constructor?
                   listOf(stackFrame.stackFrameProxy.virtualMachine.mirrorOf(chainSize)),
                   0)
@@ -193,9 +190,9 @@ class MyFilteredRequestor(project: Project,
             println("here in run $newReturnValue")
             event.thread().forceEarlyReturn(newReturnValue)
             //(mySession.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference.forceEarlyReturn(newReturnValue)
-          //}
-        //}
-        //)
+          }
+        }
+        )
         //val chainSize = chain.intermediateCalls.size + 1
         //targetClass.invokeMethod((mySession!!.currentStackFrame as JavaStackFrame).stackFrameProxy.threadProxy().threadReference,
         //                         targetClass.methodsByName("init")[0], // todo replace with constructor?
