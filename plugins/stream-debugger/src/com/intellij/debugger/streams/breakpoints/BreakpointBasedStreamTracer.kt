@@ -14,9 +14,11 @@ import com.intellij.debugger.streams.trace.TracingCallback
 import com.intellij.debugger.streams.wrapper.StreamCall
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.ui.MessageType
 import com.intellij.psi.PsiMethod
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
+import com.intellij.xdebugger.impl.XDebuggerManagerImpl
 import com.sun.jdi.ArrayReference
 import com.sun.jdi.ClassType
 import com.sun.jdi.Value
@@ -28,7 +30,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
 
   override fun trace(chain: StreamChain, callback: TracingCallback) {
     val stackFrame = (mySession.currentStackFrame as JavaStackFrame)
-    val breakpointSetter = BreakpointSetter(mySession.getProject(),
+    val breakpointSetter = BreakpointSetter(mySession.project,
                                             (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                             stackFrame,
                                             chain)
@@ -82,6 +84,13 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
           }
           else {
             if (reference is ArrayReference && reference != null) {
+              var parallel = false
+              chain.intermediateCalls.forEach { if (it.name == "parallel") parallel = true }
+              if (parallel) {
+                XDebuggerManagerImpl.getNotificationGroup()
+                  .createNotification("Parallel stream was converted to sequential during stream chain evaluation", MessageType.INFO)
+                  .notify(mySession.project)
+              }
               interpretTraceResult(reference as ArrayReference, chain, callback)
             }
           }
