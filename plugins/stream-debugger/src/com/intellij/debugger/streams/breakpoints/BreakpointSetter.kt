@@ -30,7 +30,7 @@ class BreakpointSetter(private val project: Project,
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
           val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chain, mySession, process)
-          myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_NONE
+          myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_THREAD
           val methodExitRequest1 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           val methodExitRequest2 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           methodExitRequest1.addClassFilter("java.util.stream.ReferencePipeline")

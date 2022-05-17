@@ -35,14 +35,6 @@ class MyFilteredRequestor(project: Project,
 
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
-    //action.suspendContext!!.debugProcess.managerThread.invokeAndWait(object : DebuggerCommandImpl() {
-    //  override fun action() {
-    //    println("YEA IN ACTION")
-    //    this.hold()
-    //    println("IN ACTION WOW")
-    //    this.release()
-    //  }
-    //})
     if (event is MethodExitEvent) {
       if (methods.contains(event.method())) { // костыльно
         methods.remove(event.method())
