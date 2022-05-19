@@ -2,7 +2,8 @@
 package com.intellij.debugger.streams.breakpoints.consumers.handlers
 
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.intermediate.DistinctHandler
-import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.MatchHandler
+import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.match.AllElementsMatchHandler
+import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.match.AnyMatchHandler
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.CollectHandler
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.OptionalResultHandler
 
@@ -35,9 +36,9 @@ object HandlerAssigner {
     "sum" to BasicHandler(),
     "forEach" to BasicHandler(),
     "forEachOrdered" to BasicHandler(),
-    "anyMatch" to MatchHandler(),
-    "allMatch" to MatchHandler(),
-    "noneMatch" to MatchHandler(),
+    "anyMatch" to AnyMatchHandler(),
+    "allMatch" to AllElementsMatchHandler(),
+    "noneMatch" to AllElementsMatchHandler(),
     "collect" to CollectHandler(),
     "toArray" to CollectHandler(),
     "max" to OptionalResultHandler(),

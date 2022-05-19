@@ -49,7 +49,12 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
     breakpointSetter.setRequest()
-    mySession.debugProcess.resume(mySession.suspendContext)
+    val runn = {
+      println("resumed")
+      mySession.debugProcess.resume(mySession.suspendContext)
+    }
+    ApplicationManager.getApplication().invokeLater(runn)
+    //mySession.resume()
     var reference: Value? = null
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
@@ -65,6 +70,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                 }
 
                 override fun threadAction(suspendContext: SuspendContextImpl) {
+                  println("thread action")
                   getTraceResultsForStreamChain(chain, (mySession.currentStackFrame as JavaStackFrame))
                   if (loadedClass is ClassType) {
                     reference = loadedClass.invokeMethod(
@@ -112,14 +118,26 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
   }
 
   private fun loadOperationsClasses(chain: StreamChain, classLoadingUtil: MyClassLoadingUtil) {
+    // todo "names" -> vars
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase",
                                      "/com/intellij/debugger/streams/breakpoints/consumers/handlers/StreamOperationHandlerBase.class")
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.match.MatchHandler",
+                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/impl/terminal/match/MatchHandler.class")
     chain.intermediateCalls.forEach { streamCall ->
       run {
-        loadHandlerClass(classLoadingUtil, HandlerAssigner.intermediateHandlersByName.get(streamCall.name).toString())
+        println("stream call name ${streamCall.name }")
+        if (HandlerAssigner.intermediateHandlersByName.containsKey(streamCall.name)) {
+          loadHandlerClass(classLoadingUtil, HandlerAssigner.intermediateHandlersByName.get(streamCall.name).toString())
+        } else {
+          println("беда")
+        }
       }
     }
-    loadHandlerClass(classLoadingUtil, HandlerAssigner.terminalHandlersByName.get(chain.terminationCall.name).toString())
+    if (HandlerAssigner.terminalHandlersByName.containsKey(chain.terminationCall.name)) {
+      loadHandlerClass(classLoadingUtil, HandlerAssigner.terminalHandlersByName.get(chain.terminationCall.name).toString())
+    } else {
+      println("беда terminal")
+    }
   }
 
   private fun loadHandlerClass(classLoadingUtil: MyClassLoadingUtil, handlerClassName: String) {

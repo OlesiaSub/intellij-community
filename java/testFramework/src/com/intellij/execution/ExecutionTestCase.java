@@ -121,6 +121,7 @@ public abstract class ExecutionTestCase extends JavaProjectTestCase {
   }
 
   public void println(@NonNls String s, Key outputType) {
+    System.out.println("***"+s+"***/");
     myChecker.println(s, outputType);
   }
 

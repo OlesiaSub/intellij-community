@@ -4,6 +4,7 @@ package com.intellij.debugger.streams.test;
 import com.intellij.debugger.DebuggerTestCase;
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl;
 import com.intellij.debugger.impl.OutputChecker;
+import com.intellij.debugger.streams.breakpoints.BreakpointBasedStreamTracer;
 import com.intellij.debugger.streams.lib.LibrarySupportProvider;
 import com.intellij.debugger.streams.lib.impl.StandardLibrarySupportProvider;
 import com.intellij.debugger.streams.psi.DebuggerPositionResolver;
@@ -121,7 +122,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
       @Override
       public void sessionPaused() {
         if (completed.getAndSet(true)) {
-          resume();
+          //resume();
           return;
         }
         try {
@@ -139,6 +140,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
 
       private void sessionPausedImpl() {
         printContext(getDebugProcess().getDebuggerContext());
+        System.out.println("session paused impl");
         final StreamChain chain = ApplicationManager.getApplication().runReadAction((Computable<StreamChain>)() -> {
           final PsiElement elementAtBreakpoint = positionResolver.getNearestElementToBreakpoint(session);
           final List<StreamChain> chains = elementAtBreakpoint == null ? null : chainBuilder.build(elementAtBreakpoint);
@@ -149,8 +151,8 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
           complete(null, null, null, FailureReason.CHAIN_CONSTRUCTION);
           return;
         }
-
-        new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter).trace(chain, new TracingCallback() {
+        new BreakpointBasedStreamTracer(session, List.of(), resultInterpreter).trace(chain, new TracingCallback() {
+        //new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter).trace(chain, new TracingCallback() {
           @Override
           public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {
             complete(chain, result, null, null);
@@ -173,6 +175,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
                             @Nullable TracingResult result,
                             @Nullable String error,
                             @Nullable FailureReason errorReason) {
+        System.out.println("complete!");
         try {
           if (error != null) {
             assertNotNull(errorReason);
@@ -228,6 +231,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
     assertNotNull(chain);
     assertNotNull(result);
 
+    System.out.println("CHAIN TEXT");
     println(chain.getText(), ProcessOutputTypes.SYSTEM);
 
     final TraceElement resultValue = result.getResult();
@@ -241,6 +245,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
   }
 
   protected void handleResultValue(@Nullable Value result, boolean mustBeNull) {
+    System.out.println("HANDLE RES VAL");
     if (mustBeNull) {
       assertNull(result);
     }
@@ -251,6 +256,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
 
   @SuppressWarnings("WeakerAccess")
   protected void handleTrace(@NotNull List<TraceInfo> trace) {
+    System.out.println("HANDLE TRACE");
     for (final TraceInfo info : trace) {
       final String name = info.getCall().getName();
       println(name, ProcessOutputTypes.SYSTEM);
@@ -267,6 +273,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
 
   @SuppressWarnings("WeakerAccess")
   protected void handleResolvedTrace(@NotNull ResolvedTracingResult result) {
+    System.out.println("HANDLE RESOLVED TRACE");
     final ResolvedStreamChain resolvedChain = result.getResolvedChain();
 
     checkChain(resolvedChain);
@@ -278,6 +285,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
   }
 
   private void printBeforeAndAfterValues(@Nullable NextAwareState before, @Nullable PrevAwareState after) {
+    System.out.println("PRINT VALUES");
     assertFalse(before == null && after == null);
     final StreamCall call = before == null ? after.getPrevCall() : before.getNextCall();
     assertNotNull(call);
@@ -302,6 +310,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
   private void printMapping(@NotNull List<TraceElement> values,
                             @NotNull Function<? super TraceElement, ? extends List<TraceElement>> mapper,
                             @NotNull Direction direction) {
+    System.out.println("PRINT MAPPING");
     if (values.isEmpty()) {
       println("    empty", ProcessOutputTypes.SYSTEM);
     }
