@@ -51,7 +51,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     var reference: Value? = null
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
-        println("paused 1")
         ApplicationManager.getApplication().invokeLater {
           if (!returnedToFile.get()) {
             if (MyFilteredRequestor.terminationCallReached) {
@@ -64,7 +63,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                 }
 
                 override fun threadAction(suspendContext: SuspendContextImpl) {
-                  println("paused")
                   getTraceResultsForStreamChain(chain, (mySession.currentStackFrame as JavaStackFrame))
                   if (loadedClass is ClassType) {
                     reference = loadedClass.invokeMethod(
@@ -84,7 +82,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
           }
           else {
             if (reference is ArrayReference && reference != null) {
-              println("HEREE")
               interpretTraceResult(reference as ArrayReference, chain, callback)
             }
           }
@@ -128,11 +125,9 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     chain.intermediateCalls.forEachIndexed { currentIndex, streamCall ->
       run {
         index = currentIndex
-        println("set intermediate")
         invokeOperationResultSetter(streamCall, stackFrame, index)
       }
     }
-    println("set terminal")
     val streamCall = chain.terminationCall
     invokeOperationResultSetter(streamCall, stackFrame, index + 1)
   }
