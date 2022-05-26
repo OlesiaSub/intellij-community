@@ -29,6 +29,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                                   private val myResultInterpreter: TraceResultInterpreter) : StreamTracer {
 
   override fun trace(chain: StreamChain, callback: TracingCallback) {
+    //chain.intermediateCalls.forEach { println(it.name) }
+    //println(chain.terminationCall.name)
     val stackFrame = (mySession.currentStackFrame as JavaStackFrame)
     val breakpointSetter = BreakpointSetter(mySession.project,
                                             (stackFrame.descriptor.debugProcess as DebugProcessImpl),
@@ -39,8 +41,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val classLoadingUtil = MyClassLoadingUtil(contextImpl,
                                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                               stackFrame)
-    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer", "PeekConsumer.class")
     loadOperationsClasses(chain, classLoadingUtil)
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer", "PeekConsumer.class")
     MyFilteredRequestor.terminationCallReached = false
     MyFilteredRequestor.initialized = false
     MyFilteredRequestor.index = 0
@@ -50,7 +52,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val returnedToFile = AtomicBoolean(false)
     breakpointSetter.setRequest()
     val runn = {
-      println("resumed")
       mySession.debugProcess.resume(mySession.suspendContext)
     }
     ApplicationManager.getApplication().invokeLater(runn)
@@ -70,7 +71,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                 }
 
                 override fun threadAction(suspendContext: SuspendContextImpl) {
-                  println("thread action")
                   getTraceResultsForStreamChain(chain, (mySession.currentStackFrame as JavaStackFrame))
                   if (loadedClass is ClassType) {
                     reference = loadedClass.invokeMethod(
@@ -123,20 +123,22 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                                      "/com/intellij/debugger/streams/breakpoints/consumers/handlers/StreamOperationHandlerBase.class")
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.match.MatchHandler",
                                      "/com/intellij/debugger/streams/breakpoints/consumers/handlers/impl/terminal/match/MatchHandler.class")
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.ConsumerStruct",
+                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/ConsumerStruct.class")
+    classLoadingUtil.loadUtilClasses()
     chain.intermediateCalls.forEach { streamCall ->
       run {
-        println("stream call name ${streamCall.name }")
         if (HandlerAssigner.intermediateHandlersByName.containsKey(streamCall.name)) {
           loadHandlerClass(classLoadingUtil, HandlerAssigner.intermediateHandlersByName.get(streamCall.name).toString())
         } else {
-          println("беда")
+          //println("беда")
         }
       }
     }
     if (HandlerAssigner.terminalHandlersByName.containsKey(chain.terminationCall.name)) {
       loadHandlerClass(classLoadingUtil, HandlerAssigner.terminalHandlersByName.get(chain.terminationCall.name).toString())
     } else {
-      println("беда terminal")
+      //println("беда terminal")
     }
   }
 

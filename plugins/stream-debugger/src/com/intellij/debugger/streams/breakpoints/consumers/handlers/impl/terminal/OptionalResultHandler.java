@@ -5,6 +5,7 @@ import com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer;
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase;
 
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public class OptionalResultHandler extends StreamOperationHandlerBase {
   public static void setOperationResult(int index) {
@@ -12,7 +13,16 @@ public class OptionalResultHandler extends StreamOperationHandlerBase {
     Object result = PeekConsumer.streamResult;
     assert result instanceof Object[];
     Object[] arrayResult = (Object[])result;
-    PeekConsumer.info[index - 1] = new Object[]{processingResult,
-      new Object[]{new boolean[]{((Optional)arrayResult[0]).isPresent()}, new Object[]{((Optional)arrayResult[0]).orElse(new Object())}}};
+    boolean[] isPresent = new boolean[0];
+    Object[] finalResult = new Object[0];
+    if (arrayResult[0] instanceof Optional<?>) {
+      isPresent = new boolean[]{((Optional<?>)arrayResult[0]).isPresent()};
+      finalResult = new Object[]{((Optional)arrayResult[0]).orElse(new Object())};
+    }
+    else if (arrayResult[0] instanceof OptionalInt) {
+      isPresent = new boolean[]{((OptionalInt)arrayResult[0]).isPresent()};
+      finalResult = new Object[]{((OptionalInt)arrayResult[0]).orElse(0)};
+    }
+    PeekConsumer.info[index - 1] = new Object[]{processingResult, new Object[]{isPresent, finalResult}};
   }
 }

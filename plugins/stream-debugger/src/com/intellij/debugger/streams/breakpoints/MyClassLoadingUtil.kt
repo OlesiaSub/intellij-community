@@ -11,13 +11,14 @@ import com.intellij.debugger.impl.ClassLoadingUtils
 import com.intellij.debugger.impl.PrioritizedTask
 import com.intellij.debugger.streams.breakpoints.consumers.ClassesExtractor
 import com.sun.jdi.*
+import java.util.function.IntConsumer
 
 class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
                          private val process: DebugProcessImpl,
                          private val stackFrame: JavaStackFrame) {
 
   lateinit var classLoader: ClassLoaderReference
-  var fst = true // todo норально сделать
+  var fst = true // todo нормально сделать
   val loadedClasses: MutableSet<String> = mutableSetOf()
 
   @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
@@ -55,5 +56,21 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
       e.printStackTrace()
     }
     return null
+  }
+
+  fun loadUtilClasses() {
+    process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
+                                                                       stackFrame.stackFrameProxy.threadProxy()) {
+      override fun getPriority(): PrioritizedTask.Priority {
+        return PrioritizedTask.Priority.HIGH
+      }
+
+      override fun threadAction(suspendContext: SuspendContextImpl) {
+        val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
+        val debugProcess = contextImpl.debugProcess
+        debugProcess.loadClass(contextImpl, "java.util.stream.IntStream", classLoader)
+        debugProcess.loadClass(contextImpl, "java.util.function.IntConsumer", classLoader)
+      }
+    })
   }
 }

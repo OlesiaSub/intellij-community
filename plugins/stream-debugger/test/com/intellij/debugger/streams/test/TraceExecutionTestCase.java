@@ -231,7 +231,6 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
     assertNotNull(chain);
     assertNotNull(result);
 
-    System.out.println("CHAIN TEXT");
     println(chain.getText(), ProcessOutputTypes.SYSTEM);
 
     final TraceElement resultValue = result.getResult();

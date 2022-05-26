@@ -6,6 +6,6 @@ import com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer;
 public class BasicHandler extends StreamOperationHandlerBase {
   public static void setOperationResult(int index) {
       Object[] processingResult = basicPeekResultProcessing(index);
-      PeekConsumer.info[index - 1] = processingResult;
+    PeekConsumer.info[index - 1] = processingResult;
   }
 }

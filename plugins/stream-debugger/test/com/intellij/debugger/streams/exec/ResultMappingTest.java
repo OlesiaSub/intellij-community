@@ -11,9 +11,9 @@ public class ResultMappingTest extends TraceExecutionTestCase {
     doTest(false);
   }
 
-  public void testPrimitiveToArrayMapping() {
-    doTest(false);
-  }
+  //public void testPrimitiveToArrayMapping() {
+  //  doTest(false);
+  //}
 
   public void testToListMapping() {
     doTest(false);
@@ -27,9 +27,9 @@ public class ResultMappingTest extends TraceExecutionTestCase {
     doTest(false);
   }
 
-  public void testPrimitiveAnyMatchMapping() {
-    doTest(false);
-  }
+  //public void testPrimitiveAnyMatchMapping() {
+  //  doTest(false);
+  //}
 
   public void testAllMatchMappingTrue() {
     doTest(false);
@@ -39,9 +39,9 @@ public class ResultMappingTest extends TraceExecutionTestCase {
     doTest(false);
   }
 
-  public void testPrimitiveAllMatchMapping() {
-    doTest(false);
-  }
+  //public void testPrimitiveAllMatchMapping() {
+  //  doTest(false);
+  //}
 
   public void testNoneMatchMappingTrue() {
     doTest(false);
@@ -51,9 +51,9 @@ public class ResultMappingTest extends TraceExecutionTestCase {
     doTest(false);
   }
 
-  public void testPrimitiveNoneMatchMapping() {
-    doTest(false);
-  }
+  //public void testPrimitiveNoneMatchMapping() {
+  //  doTest(false);
+  //}
 
   public void testFindFirstMappingPresent() {
     doTest(false);
@@ -63,9 +63,9 @@ public class ResultMappingTest extends TraceExecutionTestCase {
     doTest(false);
   }
 
-  public void testPrimitiveFindFirstMapping() {
-    doTest(false);
-  }
+  //public void testPrimitiveFindFirstMapping() {
+  //  doTest(false);
+  //}
 
   public void testFindAnyMappingPresent() {
     doTest(false);
@@ -75,9 +75,9 @@ public class ResultMappingTest extends TraceExecutionTestCase {
     doTest(false);
   }
 
-  public void testPrimitiveFindAnyMapping() {
-    doTest(false);
-  }
+  //public void testPrimitiveFindAnyMapping() {
+  //  doTest(false);
+  //}
 
   public void testMaxMappingPresent() {
     doTest(false);
@@ -87,9 +87,9 @@ public class ResultMappingTest extends TraceExecutionTestCase {
     doTest(false);
   }
 
-  public void testPrimitiveMaxMapping() {
-    doTest(false);
-  }
+  //public void testPrimitiveMaxMapping() {
+  //  doTest(false);
+  //}
 
   public void testMinMappingPresent() {
     doTest(false);
@@ -99,9 +99,9 @@ public class ResultMappingTest extends TraceExecutionTestCase {
     doTest(false);
   }
 
-  public void testPrimitiveMinMapping() {
-    doTest(false);
-  }
+  //public void testPrimitiveMinMapping() {
+  //  doTest(false);
+  //}
 
   public void testAllMatchExtraCalls() {
     doTest(false);

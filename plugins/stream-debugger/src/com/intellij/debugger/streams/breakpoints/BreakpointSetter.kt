@@ -31,12 +31,15 @@ class BreakpointSetter(private val project: Project,
           val methodExitRequest1 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           val methodExitRequest2 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           val methodExitRequest3 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
+          val methodExitRequest4 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           methodExitRequest1.addClassFilter("java.util.stream.ReferencePipeline")
           methodExitRequest2.addClassFilter("java.util.stream.StreamSupport")
           methodExitRequest3.addClassFilter("java.util.stream.AbstractPipeline")
+          methodExitRequest4.addClassFilter("java.util.stream.IntPipeline")
           methodExitRequest1.enable()
           methodExitRequest2.enable()
           methodExitRequest3.enable()
+          methodExitRequest4.enable()
         }
       })
     }
