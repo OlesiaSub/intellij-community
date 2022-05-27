@@ -6,9 +6,10 @@ import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.PrioritizedTask
+import com.intellij.debugger.settings.DebuggerSettings
 import com.intellij.debugger.streams.wrapper.StreamChain
-import com.intellij.debugger.ui.breakpoints.MethodBreakpoint
 import com.intellij.openapi.project.Project
+import com.intellij.xdebugger.XDebugSession
 import com.sun.jdi.VMDisconnectedException
 
 
@@ -28,10 +29,15 @@ class BreakpointSetter(private val project: Project,
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
           val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chain)
+          myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_THREAD
           val methodExitRequest1 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           val methodExitRequest2 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           val methodExitRequest3 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
           val methodExitRequest4 = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
+          myFilteredRequestor.req1 = methodExitRequest1
+          myFilteredRequestor.req2 = methodExitRequest2
+          myFilteredRequestor.req3 = methodExitRequest3
+          myFilteredRequestor.req4 = methodExitRequest4
           methodExitRequest1.addClassFilter("java.util.stream.ReferencePipeline")
           methodExitRequest2.addClassFilter("java.util.stream.StreamSupport")
           methodExitRequest3.addClassFilter("java.util.stream.AbstractPipeline")

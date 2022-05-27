@@ -140,7 +140,6 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
 
       private void sessionPausedImpl() {
         printContext(getDebugProcess().getDebuggerContext());
-        System.out.println("session paused impl");
         final StreamChain chain = ApplicationManager.getApplication().runReadAction((Computable<StreamChain>)() -> {
           final PsiElement elementAtBreakpoint = positionResolver.getNearestElementToBreakpoint(session);
           final List<StreamChain> chains = elementAtBreakpoint == null ? null : chainBuilder.build(elementAtBreakpoint);
@@ -175,7 +174,6 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
                             @Nullable TracingResult result,
                             @Nullable String error,
                             @Nullable FailureReason errorReason) {
-        System.out.println("complete!");
         try {
           if (error != null) {
             assertNotNull(errorReason);
@@ -191,6 +189,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
           println("Exception caught: " + t + ", " + t.getMessage(), ProcessOutputTypes.SYSTEM);
         }
         finally {
+          //session.stop(); // костыль ура
           resume();
         }
       }
@@ -244,7 +243,6 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
   }
 
   protected void handleResultValue(@Nullable Value result, boolean mustBeNull) {
-    System.out.println("HANDLE RES VAL");
     if (mustBeNull) {
       assertNull(result);
     }
@@ -255,7 +253,6 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
 
   @SuppressWarnings("WeakerAccess")
   protected void handleTrace(@NotNull List<TraceInfo> trace) {
-    System.out.println("HANDLE TRACE");
     for (final TraceInfo info : trace) {
       final String name = info.getCall().getName();
       println(name, ProcessOutputTypes.SYSTEM);
@@ -272,7 +269,6 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
 
   @SuppressWarnings("WeakerAccess")
   protected void handleResolvedTrace(@NotNull ResolvedTracingResult result) {
-    System.out.println("HANDLE RESOLVED TRACE");
     final ResolvedStreamChain resolvedChain = result.getResolvedChain();
 
     checkChain(resolvedChain);
@@ -284,7 +280,6 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
   }
 
   private void printBeforeAndAfterValues(@Nullable NextAwareState before, @Nullable PrevAwareState after) {
-    System.out.println("PRINT VALUES");
     assertFalse(before == null && after == null);
     final StreamCall call = before == null ? after.getPrevCall() : before.getNextCall();
     assertNotNull(call);
@@ -309,7 +304,6 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
   private void printMapping(@NotNull List<TraceElement> values,
                             @NotNull Function<? super TraceElement, ? extends List<TraceElement>> mapper,
                             @NotNull Direction direction) {
-    System.out.println("PRINT MAPPING");
     if (values.isEmpty()) {
       println("    empty", ProcessOutputTypes.SYSTEM);
     }

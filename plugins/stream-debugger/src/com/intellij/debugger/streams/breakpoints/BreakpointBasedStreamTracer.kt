@@ -11,7 +11,6 @@ import com.intellij.debugger.streams.breakpoints.consumers.handlers.HandlerAssig
 import com.intellij.debugger.streams.trace.StreamTracer
 import com.intellij.debugger.streams.trace.TraceResultInterpreter
 import com.intellij.debugger.streams.trace.TracingCallback
-import com.intellij.debugger.streams.wrapper.StreamCall
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.MessageType
@@ -29,8 +28,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                                   private val myResultInterpreter: TraceResultInterpreter) : StreamTracer {
 
   override fun trace(chain: StreamChain, callback: TracingCallback) {
-    //chain.intermediateCalls.forEach { println(it.name) }
-    //println(chain.terminationCall.name)
     val stackFrame = (mySession.currentStackFrame as JavaStackFrame)
     val breakpointSetter = BreakpointSetter(mySession.project,
                                             (stackFrame.descriptor.debugProcess as DebugProcessImpl),
@@ -55,7 +52,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
       mySession.debugProcess.resume(mySession.suspendContext)
     }
     ApplicationManager.getApplication().invokeLater(runn)
-    //mySession.resume()
     var reference: Value? = null
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
@@ -82,6 +78,10 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                 }
               })
               returnedToFile.set(true)
+              println("start step out")
+              //mySession.debugProcess.resume(mySession.suspendContext)
+              //mySession.debugProcess.startStepOver(mySession.suspendContext)
+              //mySession.debugProcess.startStepOver(mySession.suspendContext)
               mySession.debugProcess.startStepOut(mySession.suspendContext)
             }
             else {
@@ -130,14 +130,16 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
       run {
         if (HandlerAssigner.intermediateHandlersByName.containsKey(streamCall.name)) {
           loadHandlerClass(classLoadingUtil, HandlerAssigner.intermediateHandlersByName.get(streamCall.name).toString())
-        } else {
+        }
+        else {
           //println("беда")
         }
       }
     }
     if (HandlerAssigner.terminalHandlersByName.containsKey(chain.terminationCall.name)) {
       loadHandlerClass(classLoadingUtil, HandlerAssigner.terminalHandlersByName.get(chain.terminationCall.name).toString())
-    } else {
+    }
+    else {
       //println("беда terminal")
     }
   }
