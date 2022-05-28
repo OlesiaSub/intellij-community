@@ -46,14 +46,4 @@ object HandlerAssigner {
     "findAny" to OptionalResultHandler(),
     "findFirst" to OptionalResultHandler()
   )
-
-  val streamTypeByName: MutableMap<String, Char> = mutableMapOf(
-    "mapToInt" to 'i',
-    "flatMapToInt" to 'i',
-    "mapToDouble" to 'd',
-    "flatMapToDouble" to 'd',
-    "mapToLong" to 'l',
-    "flatMapToLong" to 'l',
-    "boxed" to '.'
-  )
 }

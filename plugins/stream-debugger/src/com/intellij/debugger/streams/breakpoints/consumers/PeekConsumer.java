@@ -1,12 +1,12 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.debugger.streams.breakpoints.consumers;
 
-import com.intellij.debugger.streams.breakpoints.consumers.handlers.ConsumerStruct;
-
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
+import java.util.function.LongConsumer;
 
 public class PeekConsumer {
 
@@ -16,11 +16,11 @@ public class PeekConsumer {
   public static Object streamResult;
   public static Consumer<Object>[] consumersArray;
   public static IntConsumer[] intConsumersArray;
+  public static LongConsumer[] longConsumersArray;
+  public static DoubleConsumer[] doubleConsumersArray;
   private static long startTime;
 
-  public static void init(Object array) {
-    char[] charArray = (char[])array;
-    int n = charArray.length;
+  public static void init(int n) {
     time = new AtomicInteger();
     streamResult = null;
     info = new Object[n];
@@ -30,25 +30,8 @@ public class PeekConsumer {
     }
     consumersArray = new Consumer[n];
     intConsumersArray = new IntConsumer[n];
-    for (int i = 0; i < n; i++) {
-      int finalI = i;
-      //System.out.println("Char array[i] " + charArray[i]);
-      if (charArray[i] == '.') {
-        consumersArray[i] = o -> {
-          time.incrementAndGet();
-          insertByIndex(finalI, o);
-        };
-        //System.out.println(". " + i);
-      }
-      else if (charArray[i] == 'i') {
-        intConsumersArray[i] = o -> {
-          time.incrementAndGet();
-          insertByIndex(finalI, o);
-        };
-        //System.out.println("i " + i);
-      }
-      //ConsumerStruct cs = new ConsumerStruct(consumer, intConsumer, charArray[i]);
-    }
+    longConsumersArray = new LongConsumer[n];
+    doubleConsumersArray = new DoubleConsumer[n];
     startTime = System.nanoTime();
   }
 
@@ -62,7 +45,6 @@ public class PeekConsumer {
   }
 
   public static void setReturnValue(Object value) {
-    //System.out.println("set ret val " + value);
     streamResult = value;
   }
 
@@ -74,14 +56,36 @@ public class PeekConsumer {
   }
 
   public static Consumer<Object> getConsumer(int i) {
-    //System.out.println("cons size is " + consumersArray.length + ", but index is " + i);
-    Consumer<Object> consumer = consumersArray[i];
-    return consumer;
+    consumersArray[i] = o -> {
+      time.incrementAndGet();
+      insertByIndex(i, o);
+    };
+    return consumersArray[i];
   }
 
   public static IntConsumer getIntConsumer(int i) {
-    //System.out.println("size is " + intConsumersArray.length + ", but index is " + i);
-    IntConsumer intConsumer = intConsumersArray[i];
-    return intConsumer;
+    intConsumersArray[i] = o -> {
+      time.incrementAndGet();
+      insertByIndex(i, o);
+    };
+    return intConsumersArray[i];
+  }
+
+  public static LongConsumer getLongConsumer(int i) {
+    longConsumersArray[i] = o -> {
+      System.out.println("VALUE " + o);
+      time.incrementAndGet();
+      insertByIndex(i, o);
+    };
+    return longConsumersArray[i];
+  }
+
+  public static DoubleConsumer getDoubleConsumer(int i) {
+    doubleConsumersArray[i] = o -> {
+      System.out.println("VALUE " + o);
+      time.incrementAndGet();
+      insertByIndex(i, o);
+    };
+    return doubleConsumersArray[i];
   }
 }

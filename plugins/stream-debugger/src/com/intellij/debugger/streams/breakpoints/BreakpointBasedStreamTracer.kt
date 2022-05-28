@@ -123,8 +123,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                                      "/com/intellij/debugger/streams/breakpoints/consumers/handlers/StreamOperationHandlerBase.class")
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.match.MatchHandler",
                                      "/com/intellij/debugger/streams/breakpoints/consumers/handlers/impl/terminal/match/MatchHandler.class")
-    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.ConsumerStruct",
-                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/ConsumerStruct.class")
     classLoadingUtil.loadUtilClasses()
     chain.intermediateCalls.forEach { streamCall ->
       run {

@@ -96,7 +96,6 @@ class MyFilteredRequestor(project: Project,
   private fun initializeResultTypes(event: MethodExitEvent, returnValue: Value) {
     terminationCallReached = true
     index++
-    //println("here i++")
     val vm = event.virtualMachine()
     val targetClass = vm.classesByName(targetClassName)[0]
     if (targetClass is ClassType) {
@@ -109,16 +108,23 @@ class MyFilteredRequestor(project: Project,
 
   private fun handleMethodExitEvent(event: MethodExitEvent) {
     val returnValue = event.returnValue()
+    println(event.method().name())
+    val methodName = event.method().name()
     if (event.method().name().equals(chain.terminationCall.name)) {
       initializeResultTypes(event, returnValue)
     }
     else if (returnValue is ObjectReference
-             && ((chainMethodIndex < chain.intermediateCalls.size && event.method().name().equals(
+             && ((chainMethodIndex < chain.intermediateCalls.size && methodName.equals(
         chain.intermediateCalls.get(chainMethodIndex).name))
-                 || (chainMethodIndex == chain.intermediateCalls.size && event.method().name().equals(
-        chain.terminationCall.name)) || (event.method().name().equals("stream")))) {
-      if (initialized && (event.method().name().equals("stream"))) return
-      if (!event.method().name().equals("stream")) {
+                 || (chainMethodIndex == chain.intermediateCalls.size && methodName.equals(
+        chain.terminationCall.name)) || methodName.equals("stream") || methodName.equals("intStream") || methodName.equals(
+        "longStream") || methodName.equals("doubleStream"))) {
+      if (initialized && ((methodName.equals("intStream") || methodName.equals("stream") || methodName.equals(
+          "longStream") || methodName.equals("doubleStream")))) {
+        return
+      }
+      if (!methodName.equals("stream") && !methodName.equals("intStream") && !methodName.equals("longStream") && !methodName.equals(
+          "doubleStream")) {
         chainMethodIndex++
       }
       val runnableVal = runnable@{
@@ -127,42 +133,15 @@ class MyFilteredRequestor(project: Project,
           initialized = true;
           if (targetClass is ClassType) {
             val chainSize = chain.intermediateCalls.size + 1
-            val classes = event.virtualMachine().classesByName("char[]")
-            val arrayType = classes[0] as ArrayType
-            val arrayInstance = arrayType.newInstance(chainSize + 1)
-            charArray = Array(chainSize + 2) { '.' }
-            var lastStreamType = '.'
-            var idx = 0
-            chain.intermediateCalls.forEachIndexed { index, intermediateStreamCall ->
-              run {
-                val valueToSet = event.virtualMachine().mirrorOf(lastStreamType)
-                arrayInstance.setValue(index, valueToSet)
-                charArray.set(index, lastStreamType)
-                idx = index
-                if (HandlerAssigner.streamTypeByName.contains(intermediateStreamCall.name)
-                    && lastStreamType != HandlerAssigner.streamTypeByName.get(intermediateStreamCall.name)) {
-                  lastStreamType = HandlerAssigner.streamTypeByName.get(intermediateStreamCall.name)!!
-                }
-              }
-            }
-            val valueToSet = event.virtualMachine().mirrorOf(lastStreamType)
-            if (idx == 0) idx = -1
-            arrayInstance.setValue(idx + 1, valueToSet)
-            charArray.set(idx + 1, lastStreamType)
-            arrayInstance.setValue(idx + 2, valueToSet)
-            charArray.set(idx + 2, '.')
-            val listParam = mutableListOf(arrayInstance)
-            //println("chains siez " + chainSize)
             targetClass.invokeMethod(event.thread(),
                                      targetClass.methodsByName("init")[0],
-                                     listParam,
+                                     listOf(event.virtualMachine().mirrorOf(chainSize)),
                                      0)
           }
         }
         val field = targetClass.fieldByName("consumersArray")
         val fieldValue = targetClass.getValues(listOf(field))[field]
         if (fieldValue is ArrayReference && index < fieldValue.values.size) {
-          //println("i++")
           index++
         }
         var valueToReturn = returnValue
@@ -173,22 +152,33 @@ class MyFilteredRequestor(project: Project,
                           listOf(),
                           0)
         }
-        var castValue: Value
-        //println(event.method().name())
-        //println("current index " + index)
-        //if (index < charArray.size) println("IDDXX ${charArray[index]}")
-        if (charArray[index - 1] == 'i') {
-          castValue = (targetClass as ClassType).invokeMethod(event.thread(),
-                                                              targetClass.methodsByName("getIntConsumer")[0],
-                                                              listOf(event.virtualMachine().mirrorOf(index - 1)),
-                                                              0)
-        }
-        else {
+        var castValue: Value? = null
+        println(event.method())
+        if (event.method().returnType().toString().contains("java.util.stream.Stream")) {
           castValue = (targetClass as ClassType).invokeMethod(event.thread(),
                                                               targetClass.methodsByName("getConsumer")[0],
                                                               listOf(event.virtualMachine().mirrorOf(index - 1)),
                                                               0)
         }
+        else if (event.method().returnType().toString().contains("java.util.stream.IntStream")) {
+          castValue = (targetClass as ClassType).invokeMethod(event.thread(),
+                                                              targetClass.methodsByName("getIntConsumer")[0],
+                                                              listOf(event.virtualMachine().mirrorOf(index - 1)),
+                                                              0)
+        }
+        else if (event.method().returnType().toString().contains("java.util.stream.LongStream")) {
+          castValue = (targetClass as ClassType).invokeMethod(event.thread(),
+                                                              targetClass.methodsByName("getLongConsumer")[0],
+                                                              listOf(event.virtualMachine().mirrorOf(index - 1)),
+                                                              0)
+        }
+        else if (event.method().returnType().toString().contains("java.util.stream.DoubleStream")) {
+          castValue = (targetClass as ClassType).invokeMethod(event.thread(),
+                                                              targetClass.methodsByName("getDoubleConsumer")[0],
+                                                              listOf(event.virtualMachine().mirrorOf(index - 1)),
+                                                              0)
+        }
+        println(castValue)
         val newReturnValue = (valueToReturn as ObjectReference)
           .invokeMethod(event.thread(),
                         returnValue.referenceType().methodsByName("peek")[0],
