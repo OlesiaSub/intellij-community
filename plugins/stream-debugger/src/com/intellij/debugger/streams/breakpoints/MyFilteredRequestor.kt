@@ -40,7 +40,7 @@ class MyFilteredRequestor(project: Project,
         return true
       }
       methods.add(event.method())
-      handleMethodExitEvent(event, action.suspendContext)
+      handleMethodExitEvent(event)
     }
     return true
   }
@@ -105,7 +105,7 @@ class MyFilteredRequestor(project: Project,
     }
   }
 
-  private fun handleMethodExitEvent(event: MethodExitEvent, suspendContext: SuspendContextImpl?) {
+  private fun handleMethodExitEvent(event: MethodExitEvent) {
     val returnValue = event.returnValue()
     println(event.method().name())
     val methodName = event.method().name()
