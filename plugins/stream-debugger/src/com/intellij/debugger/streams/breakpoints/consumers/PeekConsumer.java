@@ -46,6 +46,7 @@ public class PeekConsumer {
 
   public static void setReturnValue(Object value) {
     streamResult = value;
+    if (streamResult == null) streamResult = new Object[1];
   }
 
   public static Object getResult() {
@@ -73,7 +74,6 @@ public class PeekConsumer {
 
   public static LongConsumer getLongConsumer(int i) {
     longConsumersArray[i] = o -> {
-      System.out.println("VALUE " + o);
       time.incrementAndGet();
       insertByIndex(i, o);
     };
@@ -82,7 +82,6 @@ public class PeekConsumer {
 
   public static DoubleConsumer getDoubleConsumer(int i) {
     doubleConsumersArray[i] = o -> {
-      System.out.println("VALUE " + o);
       time.incrementAndGet();
       insertByIndex(i, o);
     };
