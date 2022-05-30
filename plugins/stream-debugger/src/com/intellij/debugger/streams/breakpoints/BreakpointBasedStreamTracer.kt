@@ -12,7 +12,6 @@ import com.intellij.debugger.streams.trace.StreamTracer
 import com.intellij.debugger.streams.trace.TraceResultInterpreter
 import com.intellij.debugger.streams.trace.TracingCallback
 import com.intellij.debugger.streams.trace.TracingResult
-import com.intellij.debugger.streams.wrapper.StreamCall
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.MessageType
@@ -30,20 +29,17 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
                                   private val myResultInterpreter: TraceResultInterpreter) : StreamTracer {
 
   override fun trace(chain: StreamChain, callback: TracingCallback) {
-    //chain.intermediateCalls.forEach { println(it.name) }
-    //println(chain.terminationCall.name)
     val stackFrame = (mySession.currentStackFrame as JavaStackFrame)
     val breakpointSetter = BreakpointSetter(mySession.project,
                                             (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                             stackFrame,
-                                            chain)
+                                            chain, mySession)
     val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
                                             stackFrame.stackFrameProxy)
     val classLoadingUtil = MyClassLoadingUtil(contextImpl,
                                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                               stackFrame)
     loadOperationsClasses(chain, classLoadingUtil)
-    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer", "PeekConsumer.class")
     MyFilteredRequestor.terminationCallReached = false
     MyFilteredRequestor.initialized = false
     MyFilteredRequestor.index = 0
@@ -142,6 +138,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
       println(chain.terminationCall.name)
       println("беда terminal")
     }
+    classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer", "PeekConsumer.class")
   }
 
   private fun loadHandlerClass(classLoadingUtil: MyClassLoadingUtil, handlerClassName: String) {

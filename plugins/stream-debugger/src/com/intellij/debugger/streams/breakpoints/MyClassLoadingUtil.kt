@@ -70,6 +70,11 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
         val debugProcess = contextImpl.debugProcess
         debugProcess.loadClass(contextImpl, "java.util.stream.IntStream", classLoader)
         debugProcess.loadClass(contextImpl, "java.util.function.IntConsumer", classLoader)
+        debugProcess.loadClass(contextImpl, "java.util.stream.LongStream", classLoader)
+        debugProcess.loadClass(contextImpl, "java.util.function.LongConsumer", classLoader)
+        debugProcess.loadClass(contextImpl, "java.util.stream.DoubleStream", classLoader)
+        debugProcess.loadClass(contextImpl, "java.util.function.DoubleConsumer", classLoader)
+        debugProcess.loadClass(contextImpl, "java.util.function.Consumer", classLoader)
       }
     })
   }

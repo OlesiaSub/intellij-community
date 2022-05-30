@@ -1,25 +1,24 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.debugger.streams.breakpoints
 
-import com.intellij.debugger.JavaDebuggerBundle
+import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.JavaStackFrame
+import com.intellij.debugger.engine.SuspendContextImpl
+import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
-import com.intellij.debugger.streams.breakpoints.consumers.handlers.HandlerAssigner
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.debugger.ui.breakpoints.FilteredRequestorImpl
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.MessageType
-import com.intellij.xdebugger.impl.XDebuggerManagerImpl
-import com.intellij.xdebugger.impl.breakpoints.XBreakpointBase
+import com.intellij.xdebugger.XDebugSession
 import com.sun.jdi.*
 import com.sun.jdi.event.LocatableEvent
 import com.sun.jdi.event.MethodExitEvent
-import java.util.stream.IntStream
 
 class MyFilteredRequestor(project: Project,
                           private val stackFrame: JavaStackFrame,
-                          private val chain: StreamChain) : FilteredRequestorImpl(project) {
+                          private val chain: StreamChain,
+                          private val mySession: XDebugSession) : FilteredRequestorImpl(project) {
 
   private var methods: MutableSet<Method> = mutableSetOf()
   private val targetClassName = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
@@ -41,7 +40,7 @@ class MyFilteredRequestor(project: Project,
         return true
       }
       methods.add(event.method())
-      handleMethodExitEvent(event)
+      handleMethodExitEvent(event, action.suspendContext)
     }
     return true
   }
@@ -106,7 +105,7 @@ class MyFilteredRequestor(project: Project,
     }
   }
 
-  private fun handleMethodExitEvent(event: MethodExitEvent) {
+  private fun handleMethodExitEvent(event: MethodExitEvent, suspendContext: SuspendContextImpl?) {
     val returnValue = event.returnValue()
     println(event.method().name())
     val methodName = event.method().name()
@@ -130,7 +129,7 @@ class MyFilteredRequestor(project: Project,
       val runnableVal = runnable@{
         val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
         if (!initialized) {
-          initialized = true;
+          initialized = true
           if (targetClass is ClassType) {
             val chainSize = chain.intermediateCalls.size + 1
             targetClass.invokeMethod(event.thread(),
@@ -154,38 +153,63 @@ class MyFilteredRequestor(project: Project,
         }
         var castValue: Value? = null
         println(event.method())
-        if (event.method().returnType().toString().contains("java.util.stream.Stream")) {
+        val returnType = event.method().returnType().toString()
+        if (returnType.contains("java.util.stream.Stream") || returnType.contains("one.util.streamex.AbstractStreamEx")) {
           castValue = (targetClass as ClassType).invokeMethod(event.thread(),
                                                               targetClass.methodsByName("getConsumer")[0],
                                                               listOf(event.virtualMachine().mirrorOf(index - 1)),
                                                               0)
         }
-        else if (event.method().returnType().toString().contains("java.util.stream.IntStream")) {
+        else if (returnType.contains("java.util.stream.IntStream")) {
           castValue = (targetClass as ClassType).invokeMethod(event.thread(),
                                                               targetClass.methodsByName("getIntConsumer")[0],
                                                               listOf(event.virtualMachine().mirrorOf(index - 1)),
                                                               0)
         }
-        else if (event.method().returnType().toString().contains("java.util.stream.LongStream")) {
+        else if (returnType.contains("java.util.stream.LongStream")) {
           castValue = (targetClass as ClassType).invokeMethod(event.thread(),
                                                               targetClass.methodsByName("getLongConsumer")[0],
                                                               listOf(event.virtualMachine().mirrorOf(index - 1)),
                                                               0)
         }
-        else if (event.method().returnType().toString().contains("java.util.stream.DoubleStream")) {
+        else if (returnType.contains("java.util.stream.DoubleStream")) {
           castValue = (targetClass as ClassType).invokeMethod(event.thread(),
                                                               targetClass.methodsByName("getDoubleConsumer")[0],
                                                               listOf(event.virtualMachine().mirrorOf(index - 1)),
                                                               0)
         }
         println(castValue)
-        val newReturnValue = (valueToReturn as ObjectReference)
-          .invokeMethod(event.thread(),
-                        returnValue.referenceType().methodsByName("peek")[0],
-                        listOf(castValue),
-                        0)
+        if (event.method().name().contains("sorted")) {
+          println("here")
+          (stackFrame.descriptor.debugProcess as DebugProcessImpl).managerThread.schedule(object : DebuggerContextCommandImpl(
+            (stackFrame.descriptor.debugProcess as DebugProcessImpl).debuggerContext, stackFrame.stackFrameProxy.threadProxy()) {
+            override fun threadAction(suspendContext: SuspendContextImpl) {
+              //val classLoader = (event.method().returnType() as ReferenceType).classLoader()
+              //(stackFrame.descriptor.debugProcess as DebugProcessImpl).loadClass(suspendContext.evaluationContext,
+              //                                                                   "java.util.function.Consumer", classLoader)
+              //val m = classLoader.referenceType().methodsByName("loadClass").get(1)
+              //val classReference: Value = classLoader.invokeMethod(event.thread(), m, listOf(event.virtualMachine().mirrorOf("java.util.function.Consumer")), 0)
+              //(stackFrame.descriptor.debugProcess as DebugProcessImpl).setVisible(classReference, classLoader)
+              println("IN METHOD^^^ " + event.method().name())
+              val newReturnValue = (valueToReturn as ObjectReference)
+                .invokeMethod(event.thread(),
+                              returnValue.referenceType().methodsByName("peek")[0],
+                              listOf(castValue),
+                              0)
 
-        event.thread().forceEarlyReturn(newReturnValue)
+              event.thread().forceEarlyReturn(newReturnValue)
+            }
+          })
+        } else {
+          println("IN METHOD ELSE^^^ " + event.method().name())
+          val newReturnValue = (valueToReturn as ObjectReference)
+            .invokeMethod(event.thread(),
+                          returnValue.referenceType().methodsByName("peek")[0],
+                          listOf(castValue),
+                          0)
+
+          event.thread().forceEarlyReturn(newReturnValue)
+        }
         return@runnable
       }
       ApplicationManager.getApplication().invokeLater(runnableVal)

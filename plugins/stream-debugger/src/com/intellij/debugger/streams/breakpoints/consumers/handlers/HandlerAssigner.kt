@@ -20,14 +20,27 @@ object HandlerAssigner {
     "flatMapToLong" to BasicHandler(),
     "filter" to BasicHandler(),
     "peek" to BasicHandler(),
+    "peekFirst" to BasicHandler(),
+    "peekLast" to BasicHandler(),
+    "mapToEntry" to BasicHandler(),
+    "peekKeys" to BasicHandler(),
+    "peekValues" to BasicHandler(),
+    "peekKeyValue" to BasicHandler(),
     "sorted" to BasicHandler(),
+    "sortedBy" to BasicHandler(),
+    "reverseSorted" to BasicHandler(),
+    "sortedByInt" to BasicHandler(),
+    "sortedByDouble" to BasicHandler(),
+    "sortedByLong" to BasicHandler(),
     "dropWhile" to BasicHandler(),
     "takeWhile" to BasicHandler(),
     "skip" to BasicHandler(),
     "limit" to BasicHandler(),
-    "parallel" to BasicHandler(), // todo переделывает в seq
+    "parallel" to BasicHandler(),
     "onClose" to BasicHandler(),
     "boxed" to BasicHandler(),
+    "prepend" to BasicHandler(),
+    "headTail" to BasicHandler(),
     "distinct" to DistinctHandler()
   )
 
