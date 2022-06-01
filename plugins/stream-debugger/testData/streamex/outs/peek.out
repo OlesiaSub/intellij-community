@@ -92,9 +92,9 @@ mappings for count
     21 -> nothing
   reverse:
     empty
-Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
 
-Process finished with exit code 0
+Process finished with exit code -1
+Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
 111(1 -> 1)
 24(2 -> 4)
 339(3 -> 9)

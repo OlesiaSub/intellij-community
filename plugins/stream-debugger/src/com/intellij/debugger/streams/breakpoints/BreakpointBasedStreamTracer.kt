@@ -11,7 +11,6 @@ import com.intellij.debugger.streams.breakpoints.consumers.handlers.HandlerAssig
 import com.intellij.debugger.streams.trace.StreamTracer
 import com.intellij.debugger.streams.trace.TraceResultInterpreter
 import com.intellij.debugger.streams.trace.TracingCallback
-import com.intellij.debugger.streams.trace.TracingResult
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.MessageType
@@ -33,25 +32,20 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val breakpointSetter = BreakpointSetter(mySession.project,
                                             (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                             stackFrame,
-                                            chain, mySession)
-    val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
-                                            stackFrame.stackFrameProxy)
+                                            chain)
+    val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl, stackFrame.stackFrameProxy)
     val classLoadingUtil = MyClassLoadingUtil(contextImpl,
                                               (stackFrame.descriptor.debugProcess as DebugProcessImpl),
                                               stackFrame)
     loadOperationsClasses(chain, classLoadingUtil)
     MyFilteredRequestor.terminationCallReached = false
-    MyFilteredRequestor.initialized = false
-    MyFilteredRequestor.index = 0
-    MyFilteredRequestor.chainMethodIndex = 0
-    // todo add className to stream debugger bundle (another .properties file?)
     val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
     breakpointSetter.setRequest()
-    val runn = {
+    val runnable = {
       mySession.debugProcess.resume(mySession.suspendContext)
     }
-    ApplicationManager.getApplication().invokeLater(runn)
+    ApplicationManager.getApplication().invokeLater(runnable)
     //mySession.resume()
     var reference: Value? = null
     mySession.addSessionListener(object : XDebugSessionListener {
@@ -87,13 +81,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
           }
           else {
             if (reference is ArrayReference && reference != null) {
-              var parallel = false
-              chain.intermediateCalls.forEach { if (it.name == "parallel") parallel = true }
-              if (parallel) {
-                XDebuggerManagerImpl.getNotificationGroup()
-                  .createNotification("Parallel stream was converted to sequential during stream chain evaluation", MessageType.INFO)
-                  .notify(mySession.project)
-              }
+              processParallelStreamCall(chain)
               interpretTraceResult(reference as ArrayReference, chain, callback)
             }
           }
@@ -102,17 +90,25 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     })
   }
 
+  private fun processParallelStreamCall(chain: StreamChain) {
+    if (chain.intermediateCalls.any { it.name.equals("parallel") }) {
+      XDebuggerManagerImpl.getNotificationGroup()
+        .createNotification("Parallel stream was converted to sequential during stream chain evaluation", MessageType.INFO)
+        .notify(mySession.project)
+    }
+  }
+
   private fun interpretTraceResult(reference: ArrayReference, chain: StreamChain, callback: TracingCallback) {
     val interpretedResult = try {
       myResultInterpreter.interpret(chain, reference)
     }
     catch (t: Throwable) {
-      //mySession.stop();
+      // todo callback.evaluationFailed
       throw t;
     }
     val context = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
                                         (mySession.currentStackFrame as JavaStackFrame).stackFrameProxy)
-    callback.evaluated(interpretedResult as TracingResult, context)
+    callback.evaluated(interpretedResult, context)
   }
 
   private fun loadOperationsClasses(chain: StreamChain, classLoadingUtil: MyClassLoadingUtil) {
@@ -155,7 +151,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     chain.intermediateCalls.forEachIndexed { currentIndex, streamCall ->
       run {
         index = currentIndex
-        println("CALL ${streamCall.name}")
         invokeOperationResultSetter(stackFrame, index, HandlerAssigner.intermediateHandlersByName.get(streamCall.name).toString())
       }
     }

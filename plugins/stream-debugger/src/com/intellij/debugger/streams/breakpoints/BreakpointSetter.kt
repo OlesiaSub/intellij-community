@@ -17,8 +17,7 @@ import com.sun.jdi.request.MethodExitRequest
 class BreakpointSetter(private val project: Project,
                        private val process: DebugProcessImpl,
                        private val myStackFrame: JavaStackFrame,
-                       private val chain: StreamChain,
-                       private val mySession: XDebugSession) {
+                       private val chain: StreamChain) {
 
   private val classFilters = listOf("java.util.stream.ReferencePipeline",
                                     "java.util.stream.StreamSupport",
@@ -42,7 +41,7 @@ class BreakpointSetter(private val project: Project,
         }
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
-          val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chain, mySession)
+          val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chain)
           myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_THREAD
           //ApplicationManager.getApplication().assertIsDispatchThread()
           val requests: MutableList<MethodExitRequest> = mutableListOf()
