@@ -126,7 +126,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
       run {
         if (HandlerAssigner.intermediateHandlersByName.containsKey(streamCall.name)) {
           loadHandlerClass(classLoadingUtil, HandlerAssigner.intermediateHandlersByName.get(streamCall.name).toString())
-        } else {
+        }
+        else {
           println(streamCall.name)
           println("беда")
         }
@@ -134,7 +135,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     }
     if (HandlerAssigner.terminalHandlersByName.containsKey(chain.terminationCall.name)) {
       loadHandlerClass(classLoadingUtil, HandlerAssigner.terminalHandlersByName.get(chain.terminationCall.name).toString())
-    } else {
+    }
+    else {
       println(chain.terminationCall.name)
       println("беда terminal")
     }
@@ -166,7 +168,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     val className: String
     try {
       className = handlerClassName.substring(0, handlerClassName.lastIndexOf('@'))
-    } catch (e: Exception) {
+    }
+    catch (e: Exception) {
       return
     }
     val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
