@@ -126,18 +126,17 @@ class MyFilteredRequestor(project: Project,
       return
     }
     else if (returnValue is ObjectReference
-             && ((MyFilteredRequestor1.chainMethodIndex < chain.intermediateCalls.size && methodName.equals(
-        chain.intermediateCalls.get(MyFilteredRequestor1.chainMethodIndex).name))
-                 || (MyFilteredRequestor1.chainMethodIndex == chain.intermediateCalls.size && methodName.equals(
-        chain.terminationCall.name)) || methodName.equals("stream") || methodName.equals("intStream") || methodName.equals(
-        "longStream") || methodName.equals("doubleStream"))) {
-      if (MyFilteredRequestor1.initialized && ((methodName.equals("intStream") || methodName.equals("stream") || methodName.equals(
-          "longStream") || methodName.equals("doubleStream")))) {
+             && ((chainMethodIndex < chain.intermediateCalls.size && methodName.equals(chain.intermediateCalls.get(chainMethodIndex).name))
+                 || (chainMethodIndex == chain.intermediateCalls.size && methodName.equals(chain.terminationCall.name))
+                 || methodName.equals("stream") || methodName.equals("intStream")
+                 || methodName.equals("longStream") || methodName.equals("doubleStream"))) {
+      if (initialized && ((methodName.equals("intStream") || methodName.equals("stream")
+                           || methodName.equals("longStream") || methodName.equals("doubleStream")))) {
         return
       }
-      if (!methodName.equals("stream") && !methodName.equals("intStream") && !methodName.equals("longStream") && !methodName.equals(
-          "doubleStream")) {
-        MyFilteredRequestor1.chainMethodIndex++
+      if (!methodName.equals("stream") && !methodName.equals("intStream")
+          && !methodName.equals("longStream") && !methodName.equals("doubleStream")) {
+        chainMethodIndex++
       }
       //val runnableVal = runnable@{
       val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
