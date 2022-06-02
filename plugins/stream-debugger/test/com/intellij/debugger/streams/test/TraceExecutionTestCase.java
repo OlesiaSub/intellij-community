@@ -195,7 +195,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
       }
 
       private void resume() {
-        ApplicationManager.getApplication().invokeLater(session::resume);
+        ApplicationManager.getApplication().invokeAndWait(session::resume);
       }
     }, getTestRootDisposable());
   }

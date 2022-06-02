@@ -46,7 +46,6 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
       mySession.debugProcess.resume(mySession.suspendContext)
     }
     ApplicationManager.getApplication().invokeLater(runnable)
-    //mySession.resume()
     var reference: Value? = null
     mySession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {

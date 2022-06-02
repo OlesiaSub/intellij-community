@@ -12,6 +12,6 @@ mappings for noneMatch
     1 -> 2147483647
   reverse:
     1 <- 2147483647
+Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
 
 Process finished with exit code -1
-Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'

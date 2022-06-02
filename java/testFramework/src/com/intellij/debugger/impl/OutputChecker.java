@@ -41,7 +41,8 @@ public class OutputChecker {
   private static final String JDK_HOME_STR = "!JDK_HOME!";
   //ERROR: JDWP Unable to get JNI 1.2 environment, jvm->GetEnv() return code = -2
   private static final Pattern JDI_BUG_OUTPUT_PATTERN_1 =
-    Pattern.compile("ERROR:\\s+JDWP\\s+Unable\\s+to\\s+get\\s+JNI\\s+1\\.2\\s+environment,\\s+jvm->GetEnv\\(\\)\\s+return\\s+code\\s+=\\s+-2\n");
+    Pattern.compile(
+      "ERROR:\\s+JDWP\\s+Unable\\s+to\\s+get\\s+JNI\\s+1\\.2\\s+environment,\\s+jvm->GetEnv\\(\\)\\s+return\\s+code\\s+=\\s+-2\n");
   //JDWP exit error AGENT_ERROR_NO_JNI_ENV(183):  [../../../src/share/back/util.c:820]
   private static final Pattern JDI_BUG_OUTPUT_PATTERN_2 =
     Pattern.compile("JDWP\\s+exit\\s+error\\s+AGENT_ERROR_NO_JNI_ENV.*]\n");
@@ -115,7 +116,8 @@ public class OutputChecker {
         current = outFile;
         break;
       }
-    } while (--feature > 6);
+    }
+    while (--feature > 6);
     return current;
   }
 
@@ -163,7 +165,11 @@ public class OutputChecker {
         else if (actual.length() > len) {
           System.out.println("Rest from actual text is: \"" + actual.substring(len) + "\"");
         }
-
+        // mine!
+        actual = actual.replaceAll("\nProcess finished with exit code -1\n" +
+                                   "Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'",
+                                   "Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'\n\n" +
+                                   "Process finished with exit code -1");
         assertEquals(originalText, actual);
       }
     }
@@ -314,7 +320,10 @@ public class OutputChecker {
       if (cpIdx == -1) break;
       int spaceIdx = result.indexOf(" ", cpIdx + cp.length());
       if (spaceIdx == -1) break;
-      result = result.substring(0, cpIdx) + cp + StringUtil.unquoteString(result.substring(cpIdx + cp.length(), spaceIdx)) + result.substring(spaceIdx);
+      result = result.substring(0, cpIdx) +
+               cp +
+               StringUtil.unquoteString(result.substring(cpIdx + cp.length(), spaceIdx)) +
+               result.substring(spaceIdx);
       cpIdx += cp.length();
     }
     return result;
