@@ -125,6 +125,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
         else {
           println(streamCall.name)
           println("беда")
+          mySession.stop()
         }
       }
     }
@@ -134,6 +135,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     else {
       println(chain.terminationCall.name)
       println("беда terminal")
+      mySession.stop()
     }
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer", "PeekConsumer.class")
   }

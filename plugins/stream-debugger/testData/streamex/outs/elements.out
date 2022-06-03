@@ -24,7 +24,6 @@ mappings for sum
     4 -> nothing
   reverse:
     empty
+Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
 
 Process finished with exit code -1
-Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
-80

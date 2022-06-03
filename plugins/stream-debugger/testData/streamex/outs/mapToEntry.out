@@ -29,7 +29,6 @@ mappings for toArray
     2 <- 7
     4 <- 8
     6 <- 9
+Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
 
 Process finished with exit code -1
-Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
-3

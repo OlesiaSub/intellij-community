@@ -49,6 +49,7 @@ class MyFilteredRequestor(project: Project,
   }
 
   private fun handleMethodExitEvent(event: MethodExitEvent) {
+    println(event.method().name())
     val returnValue = event.returnValue()
     val methodName = event.method().name()
     if (methodName.equals(chain.terminationCall.name) && event.method().arguments().size == chain.terminationCall.arguments.size) {
@@ -62,14 +63,14 @@ class MyFilteredRequestor(project: Project,
     else if (returnValue is ObjectReference
              && ((chainMethodIndex < chain.intermediateCalls.size && methodName.equals(chain.intermediateCalls.get(chainMethodIndex).name))
                  || (chainMethodIndex == chain.intermediateCalls.size && methodName.equals(chain.terminationCall.name))
-                 || methodName.equals("stream") || methodName.equals("intStream")
+                 || methodName.equals("stream") || methodName.equals("of") || methodName.equals("intStream")
                  || methodName.equals("longStream") || methodName.equals("doubleStream"))) {
-      if (initialized && ((methodName.equals("stream") || methodName.equals("intStream")
+      if (initialized && ((methodName.equals("stream") || methodName.equals("of") || methodName.equals("intStream")
                            || methodName.equals("longStream") || methodName.equals("doubleStream")))) {
         return
       }
       if (!methodName.equals("stream") && !methodName.equals("intStream")
-          && !methodName.equals("longStream") && !methodName.equals("doubleStream")) {
+          && !methodName.equals("longStream") && !methodName.equals("doubleStream") && !methodName.equals("of")) {
         chainMethodIndex++
       }
       val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
@@ -177,13 +178,13 @@ class MyFilteredRequestor(project: Project,
   private fun getCorrespondingConsumer(event: MethodExitEvent, targetClass: ClassType): Value {
     val returnType = event.method().returnType().toString()
     var methodToInvoke = "getConsumer"
-    if (returnType.contains("java.util.stream.IntStream")) {
+    if (returnType.contains("java.util.stream.IntStream") || returnType.contains("one.util.streamex.IntStreamEx")) {
       methodToInvoke = "getIntConsumer"
     }
-    else if (returnType.contains("java.util.stream.LongStream")) {
+    else if (returnType.contains("java.util.stream.LongStream") || returnType.contains("one.util.streamex.LongStreamEx")) {
       methodToInvoke = "getLongConsumer"
     }
-    else if (returnType.contains("java.util.stream.DoubleStream")) {
+    else if (returnType.contains("java.util.stream.DoubleStream") || returnType.contains("one.util.streamex.DoubleStreamEx")) {
       methodToInvoke = "getDoubleConsumer"
     }
     return targetClass.invokeMethod(event.thread(),
@@ -193,7 +194,8 @@ class MyFilteredRequestor(project: Project,
   }
 
   private fun loadStreamExClasses(event: MethodExitEvent) {
-    if (event.method().returnType().toString().contains("StreamEx") && !streamExInitialized) {
+    if ((event.method().returnType().toString().contains("StreamEx")
+         || event.method().returnType().toString().contains("EntryStream")) && !streamExInitialized) {
       streamExInitialized = true
       val classLoader = (event.method().returnType() as ReferenceType).classLoader()
       val loadClassMethod = classLoader.referenceType().methodsByName("loadClass").get(1)
