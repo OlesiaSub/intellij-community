@@ -33,6 +33,7 @@ class MyFilteredRequestor(project: Project,
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
     if (toReturn) {
+      (stackFrame.descriptor.debugProcess as DebugProcessImpl).requestsManager.deleteRequest(this)
       return false
     }
     if (event is MethodExitEvent) {

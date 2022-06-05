@@ -14,7 +14,6 @@ import com.intellij.debugger.streams.trace.TracingCallback
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.MessageType
-import com.intellij.psi.PsiMethod
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
 import com.intellij.xdebugger.impl.XDebuggerManagerImpl
@@ -24,19 +23,13 @@ import com.sun.jdi.Value
 import java.util.concurrent.atomic.AtomicBoolean
 
 class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
-                                  private val chainReferences: MutableList<out PsiMethod>,
                                   private val myResultInterpreter: TraceResultInterpreter) : StreamTracer {
 
   override fun trace(chain: StreamChain, callback: TracingCallback) {
     val stackFrame = (mySession.currentStackFrame as JavaStackFrame)
-    val breakpointSetter = BreakpointSetter(mySession.project,
-                                            (stackFrame.descriptor.debugProcess as DebugProcessImpl),
-                                            stackFrame,
-                                            chain)
+    val breakpointSetter = BreakpointSetter(mySession.project, stackFrame, chain)
     val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl, stackFrame.stackFrameProxy)
-    val classLoadingUtil = MyClassLoadingUtil(contextImpl,
-                                              (stackFrame.descriptor.debugProcess as DebugProcessImpl),
-                                              stackFrame)
+    val classLoadingUtil = MyClassLoadingUtil(contextImpl, (stackFrame.descriptor.debugProcess as DebugProcessImpl), stackFrame)
     loadOperationsClasses(chain, classLoadingUtil)
     MyFilteredRequestor.terminationCallReached = false
     val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
@@ -52,6 +45,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
         ApplicationManager.getApplication().invokeLater {
           if (!returnedToFile.get()) {
             if (MyFilteredRequestor.terminationCallReached) {
+              MyFilteredRequestor.terminationCallReached = false
               val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
               val debugProcess = stackFrame.descriptor.debugProcess as DebugProcessImpl
               debugProcess.managerThread.schedule(object : DebuggerContextCommandImpl(debugProcess.debuggerContext,

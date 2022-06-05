@@ -150,7 +150,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
           complete(null, null, null, FailureReason.CHAIN_CONSTRUCTION);
           return;
         }
-        new BreakpointBasedStreamTracer(session, List.of(), resultInterpreter).trace(chain, new TracingCallback() {
+        new BreakpointBasedStreamTracer(session, resultInterpreter).trace(chain, new TracingCallback() {
         //new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter).trace(chain, new TracingCallback() {
           @Override
           public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {

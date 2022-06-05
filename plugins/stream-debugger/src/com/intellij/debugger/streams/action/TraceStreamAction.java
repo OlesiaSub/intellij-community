@@ -35,7 +35,7 @@ import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -93,7 +93,7 @@ public final class TraceStreamAction extends AnAction {
     }
 
     if (chains.size() == 1) {
-      runTrace(chains.get(0).chain, chains.get(0).provider, session, chainReferences.get(0));
+      runTrace(chains.get(0).chain, chains.get(0).provider, session);
     }
     else {
       Project project = session.getProject();
@@ -103,12 +103,14 @@ public final class TraceStreamAction extends AnAction {
       ApplicationManager.getApplication()
         .invokeLater(() -> {
           new MyStreamChainChooser(editor).show(ContainerUtil.map(chains, StreamChainOption::new),
-                                                provider -> runTrace(provider.chain, provider.provider, session, chainReferences.get(0))); // TODO replace get(0) with all
+                                                provider -> runTrace(provider.chain, provider.provider, session));
         });
     }
   }
 
-  private static void runTrace(@NotNull StreamChain chain, @NotNull LibrarySupportProvider provider, @NotNull XDebugSession session, @NotNull List<PsiMethod> chainReferences) {
+  private static void runTrace(@NotNull StreamChain chain,
+                               @NotNull LibrarySupportProvider provider,
+                               @NotNull XDebugSession session) {
     final EvaluationAwareTraceWindow window = new EvaluationAwareTraceWindow(session, chain);
     ApplicationManager.getApplication().invokeLater(window::show);
     final Project project = session.getProject();
@@ -116,7 +118,7 @@ public final class TraceStreamAction extends AnAction {
     final TraceResultInterpreterImpl resultInterpreter =
       new TraceResultInterpreterImpl(provider.getLibrarySupport().getInterpreterFactory());
     //final StreamTracer tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
-    final StreamTracer tracer = new BreakpointBasedStreamTracer(session, chainReferences, resultInterpreter);
+    final StreamTracer tracer = new BreakpointBasedStreamTracer(session, resultInterpreter);
     tracer.trace(chain, new TracingCallback() {
       @Override
       public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {

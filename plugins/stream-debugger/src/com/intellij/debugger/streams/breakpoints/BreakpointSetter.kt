@@ -9,14 +9,12 @@ import com.intellij.debugger.impl.PrioritizedTask
 import com.intellij.debugger.settings.DebuggerSettings
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.project.Project
-import com.intellij.xdebugger.XDebugSession
 import com.sun.jdi.VMDisconnectedException
 import com.sun.jdi.request.MethodExitRequest
 
 
 class BreakpointSetter(private val project: Project,
-                       private val process: DebugProcessImpl,
-                       private val myStackFrame: JavaStackFrame,
+                       private val stackFrame: JavaStackFrame,
                        private val chain: StreamChain) {
 
   private val classFilters = listOf("java.util.stream.ReferencePipeline",
@@ -31,17 +29,18 @@ class BreakpointSetter(private val project: Project,
                                     "one.util.streamex.IntStreamEx",
                                     "one.util.streamex.LongStreamEx",
                                     "one.util.streamex.DoubleStreamEx")
+  private val process = stackFrame.descriptor.debugProcess as DebugProcessImpl
 
   fun setRequest() {
     try {
       process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
-                                                                         myStackFrame.stackFrameProxy.threadProxy()) {
+                                                                         stackFrame.stackFrameProxy.threadProxy()) {
         override fun getPriority(): PrioritizedTask.Priority {
           return PrioritizedTask.Priority.HIGH
         }
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
-          val myFilteredRequestor = MyFilteredRequestor(project, myStackFrame, chain)
+          val myFilteredRequestor = MyFilteredRequestor(project, stackFrame, chain)
           myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_THREAD
           //ApplicationManager.getApplication().assertIsDispatchThread()
           val requests: MutableList<MethodExitRequest> = mutableListOf()
