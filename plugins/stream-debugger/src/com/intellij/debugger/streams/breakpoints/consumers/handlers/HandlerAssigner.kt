@@ -58,6 +58,11 @@ object HandlerAssigner {
     "boxed" to BasicHandler(),
     "prepend" to BasicHandler(),
     "headTail" to BasicHandler(),
+    "append" to BasicHandler(),
+    "prepend" to BasicHandler(),
+    "atLeast" to BasicHandler(),
+    "atMost" to BasicHandler(),
+    "filterBy" to BasicHandler(),
     "distinct" to DistinctHandler()
   )
 
@@ -65,6 +70,7 @@ object HandlerAssigner {
     "count" to BasicHandler(),
     "sum" to BasicHandler(),
     "forEach" to BasicHandler(),
+    "reduce" to BasicHandler(),
     "forEachOrdered" to BasicHandler(),
     "anyMatch" to AnyMatchHandler(),
     "allMatch" to AllElementsMatchHandler(),

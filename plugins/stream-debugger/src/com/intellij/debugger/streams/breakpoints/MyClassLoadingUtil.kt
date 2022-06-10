@@ -57,25 +57,4 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
     }
     return null
   }
-
-  fun loadUtilClasses() {
-    process.managerThread.schedule(object : DebuggerContextCommandImpl(process.debuggerContext,
-                                                                       stackFrame.stackFrameProxy.threadProxy()) {
-      override fun getPriority(): PrioritizedTask.Priority {
-        return PrioritizedTask.Priority.HIGH
-      }
-
-      override fun threadAction(suspendContext: SuspendContextImpl) {
-        val classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
-        val debugProcess = contextImpl.debugProcess
-        debugProcess.loadClass(contextImpl, "java.util.stream.IntStream", classLoader)
-        debugProcess.loadClass(contextImpl, "java.util.function.IntConsumer", classLoader)
-        debugProcess.loadClass(contextImpl, "java.util.stream.LongStream", classLoader)
-        debugProcess.loadClass(contextImpl, "java.util.function.LongConsumer", classLoader)
-        debugProcess.loadClass(contextImpl, "java.util.stream.DoubleStream", classLoader)
-        debugProcess.loadClass(contextImpl, "java.util.function.DoubleConsumer", classLoader)
-        debugProcess.loadClass(contextImpl, "java.util.function.Consumer", classLoader)
-      }
-    })
-  }
 }

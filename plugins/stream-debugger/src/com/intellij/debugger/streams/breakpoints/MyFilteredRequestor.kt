@@ -3,7 +3,10 @@ package com.intellij.debugger.streams.breakpoints
 
 import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.JavaStackFrame
+import com.intellij.debugger.engine.SuspendContextImpl
+import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
+import com.intellij.debugger.impl.ClassLoadingUtils
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.debugger.ui.breakpoints.FilteredRequestorImpl
 import com.intellij.openapi.project.Project
@@ -18,6 +21,7 @@ class MyFilteredRequestor(project: Project,
 
   private var methods: MutableSet<Method> = mutableSetOf()
   private val targetClassName = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
+  private val debugProcessImpl = stackFrame.descriptor.debugProcess as DebugProcessImpl
 
   companion object {
     var terminationCallReached = false
@@ -33,9 +37,13 @@ class MyFilteredRequestor(project: Project,
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
     if (toReturn) {
-      (stackFrame.descriptor.debugProcess as DebugProcessImpl).requestsManager.deleteRequest(this)
+      debugProcessImpl.requestsManager.deleteRequest(this)
       return false
     }
+    val contextImpl = EvaluationContextImpl(action.suspendContext as SuspendContextImpl,
+                                            (action.suspendContext as SuspendContextImpl).frameProxy)
+    contextImpl.isAutoLoadClasses = true
+    contextImpl.classLoader
     if (event is MethodExitEvent) {
       if (methods.contains(event.method())) { // костыльно
         methods.remove(event.method())
@@ -43,18 +51,18 @@ class MyFilteredRequestor(project: Project,
       }
       methods.add(event.method())
       requests.forEach { it.disable() }
-      handleMethodExitEvent(event)
+      handleMethodExitEvent(event, contextImpl)
       requests.forEach { it.enable() }
     }
     return toReturn
   }
 
-  private fun handleMethodExitEvent(event: MethodExitEvent) {
+  private fun handleMethodExitEvent(event: MethodExitEvent, contextImpl: EvaluationContextImpl) {
     println(event.method().name())
     val returnValue = event.returnValue()
     val methodName = event.method().name()
     if (methodName.equals(chain.terminationCall.name) && event.method().arguments().size == chain.terminationCall.arguments.size) {
-      initializeResultTypes(event, returnValue)
+      initializeResultTypes(event, returnValue, contextImpl)
       requests.forEach { it.disable() }
       toReturn = true
     }
@@ -78,10 +86,12 @@ class MyFilteredRequestor(project: Project,
       if (!initialized) {
         initialized = true;
         if (targetClass is ClassType) {
-          targetClass.invokeMethod(event.thread(),
-                                   targetClass.methodsByName("init")[0],
-                                   listOf(event.virtualMachine().mirrorOf(chain.intermediateCalls.size + 1)),
-                                   0)
+          debugProcessImpl.invokeMethod(contextImpl,
+                                        targetClass,
+                                        targetClass.methodsByName("init")[0],
+                                        listOf(event.virtualMachine().mirrorOf(chain.intermediateCalls.size + 1)),
+                                        ClassType.INVOKE_SINGLE_THREADED,
+                                        true)
         }
       }
       val consumersArrayField = targetClass.fieldByName("consumersArray")
@@ -91,18 +101,18 @@ class MyFilteredRequestor(project: Project,
       }
       var valueToReturn = returnValue
       if (event.method().name().equals("parallel")) {
-        valueToReturn = invokeSequential(returnValue, event)
+        valueToReturn = invokeSequential(returnValue, contextImpl)
       }
-      val consumer = getCorrespondingConsumer(event, targetClass as ClassType)
-      loadStreamExClasses(event)
+      val consumer = getCorrespondingConsumer(event, targetClass as ClassType, contextImpl)
       try {
-        val newReturnValue = (valueToReturn as ObjectReference)
-          .invokeMethod(event.thread(),
-                        returnValue.referenceType().methodsByName("peek")[0],
-                        listOf(consumer),
-                        ClassType.INVOKE_SINGLE_THREADED)
+        val newReturnValue = debugProcessImpl.invokeInstanceMethod(contextImpl,
+                                                                   (valueToReturn as ObjectReference),
+                                                                   returnValue.referenceType().methodsByName("peek")[0],
+                                                                   listOf(consumer),
+                                                                   ClassType.INVOKE_SINGLE_THREADED,
+                                                                   true)
         event.thread().forceEarlyReturn(newReturnValue)
-        (stackFrame.descriptor.debugProcess as DebugProcessImpl).session.resume()
+        (debugProcessImpl).session.resume()
       }
       catch (e: Exception) {
         e.printStackTrace()
@@ -110,11 +120,14 @@ class MyFilteredRequestor(project: Project,
     }
   }
 
-  private fun invokeSequential(returnValue: ObjectReference, event: MethodExitEvent) =
-    returnValue.invokeMethod(event.thread(),
-                             returnValue.referenceType().methodsByName("sequential")[0],
-                             listOf(),
-                             0)
+  private fun invokeSequential(returnValue: ObjectReference, contextImpl: EvaluationContextImpl) =
+    debugProcessImpl.invokeInstanceMethod(contextImpl,
+                                          returnValue,
+                                          returnValue.referenceType().methodsByName("peek")[0],
+                                          listOf(),
+                                          ClassType.INVOKE_SINGLE_THREADED,
+                                          true)
+
 
   private fun getParametersList(returnValue: Value, vm: VirtualMachine): MutableList<ArrayReference?> {
     val classes: List<ReferenceType>
@@ -163,20 +176,22 @@ class MyFilteredRequestor(project: Project,
     return mutableListOf(arrayInstance)
   }
 
-  private fun initializeResultTypes(event: MethodExitEvent, returnValue: Value) {
+  private fun initializeResultTypes(event: MethodExitEvent, returnValue: Value, contextImpl: EvaluationContextImpl) {
     terminationCallReached = true
     index++
     val vm = event.virtualMachine()
     val targetClass = vm.classesByName(targetClassName)[0]
     if (targetClass is ClassType) {
-      targetClass.invokeMethod(event.thread(),
-                               targetClass.methodsByName("setReturnValue")[0],
-                               getParametersList(returnValue, vm),
-                               ClassType.INVOKE_SINGLE_THREADED)
+      debugProcessImpl.invokeMethod(contextImpl,
+                                    targetClass,
+                                    targetClass.methodsByName("setReturnValue")[0],
+                                    getParametersList(returnValue, vm),
+                                    ClassType.INVOKE_SINGLE_THREADED,
+                                    true)
     }
   }
 
-  private fun getCorrespondingConsumer(event: MethodExitEvent, targetClass: ClassType): Value {
+  private fun getCorrespondingConsumer(event: MethodExitEvent, targetClass: ClassType, contextImpl: EvaluationContextImpl): Value {
     val returnType = event.method().returnType().toString()
     var methodToInvoke = "getConsumer"
     if (returnType.contains("java.util.stream.IntStream") || returnType.contains("one.util.streamex.IntStreamEx")) {
@@ -188,26 +203,11 @@ class MyFilteredRequestor(project: Project,
     else if (returnType.contains("java.util.stream.DoubleStream") || returnType.contains("one.util.streamex.DoubleStreamEx")) {
       methodToInvoke = "getDoubleConsumer"
     }
-    return targetClass.invokeMethod(event.thread(),
-                                    targetClass.methodsByName(methodToInvoke)[0],
-                                    listOf(event.virtualMachine().mirrorOf(index - 1)),
-                                    ClassType.INVOKE_SINGLE_THREADED)
-  }
-
-  private fun loadStreamExClasses(event: MethodExitEvent) {
-    if ((event.method().returnType().toString().contains("StreamEx")
-         || event.method().returnType().toString().contains("EntryStream")) && !streamExInitialized) {
-      streamExInitialized = true
-      val classLoader = (event.method().returnType() as ReferenceType).classLoader()
-      val loadClassMethod = classLoader.referenceType().methodsByName("loadClass").get(1)
-      val consumers = listOf("Consumer", "IntConsumer", "LongConsumer", "DoubleConsumer")
-      consumers.forEach {
-        val classReference: Value = classLoader.invokeMethod(event.thread(),
-                                                             loadClassMethod,
-                                                             listOf(event.virtualMachine().mirrorOf("java.util.function.$it")),
-                                                             ClassType.INVOKE_SINGLE_THREADED)
-        (stackFrame.descriptor.debugProcess as DebugProcessImpl).setVisible(classReference, classLoader)
-      }
-    }
+    return debugProcessImpl.invokeMethod(contextImpl,
+                                         targetClass,
+                                         targetClass.methodsByName(methodToInvoke)[0],
+                                         listOf(event.virtualMachine().mirrorOf(index - 1)),
+                                         ClassType.INVOKE_SINGLE_THREADED,
+                                         true)
   }
 }

@@ -9,6 +9,7 @@ import com.intellij.debugger.impl.PrioritizedTask
 import com.intellij.debugger.settings.DebuggerSettings
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.project.Project
+import com.intellij.xdebugger.XDebugSession
 import com.sun.jdi.VMDisconnectedException
 import com.sun.jdi.request.MethodExitRequest
 
@@ -40,9 +41,9 @@ class BreakpointSetter(private val project: Project,
         }
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
+          //ApplicationManager.getApplication().assertIsDispatchThread()
           val myFilteredRequestor = MyFilteredRequestor(project, stackFrame, chain)
           myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_THREAD
-          //ApplicationManager.getApplication().assertIsDispatchThread()
           val requests: MutableList<MethodExitRequest> = mutableListOf()
           classFilters.forEach {
             val methodExitRequest = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
