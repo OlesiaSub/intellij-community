@@ -205,8 +205,8 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
       return;
     }
     StreamEx<Method> methods = lambdaMethod != null
-                               ? StreamEx.of(lambdaMethod)
-                               : breakpoint.matchingMethods(StreamEx.of(classType.methods()).filter(m -> base || !m.isAbstract()), debugProcess);
+                       ? StreamEx.of(lambdaMethod)
+                       : breakpoint.matchingMethods(StreamEx.of(classType.methods()).filter(m -> base || !m.isAbstract()), debugProcess);
     boolean found = false;
     for (Method method : methods) {
       found = true;
@@ -247,7 +247,7 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
                 case Opcodes.ARETURN:
                 case Opcodes.LRETURN:
                 case Opcodes.DRETURN:
-                  //case Opcodes.ATHROW:
+                //case Opcodes.ATHROW:
                   allLineLocations.stream()
                     .filter(l -> l.lineNumber() == myLastLine)
                     .findFirst().ifPresent(location -> createLocationBreakpointRequest(breakpoint, location, debugProcess, false));
@@ -360,7 +360,7 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
     String locationFileName = DebuggerUtilsEx.getSourceName(location, e -> defaultFileName);
     int locationLine = location.lineNumber();
     return JavaDebuggerBundle.message(entry ? "status.method.entry.breakpoint.reached" : "status.method.exit.breakpoint.reached",
-                                      method.declaringType().name() + "." + method.name() + "()",
+                                  method.declaringType().name() + "." + method.name() + "()",
                                       locationQName,
                                       locationFileName,
                                       locationLine
