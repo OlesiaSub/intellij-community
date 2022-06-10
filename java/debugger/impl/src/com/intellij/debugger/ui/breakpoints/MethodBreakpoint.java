@@ -24,7 +24,6 @@ import com.intellij.debugger.jdi.ClassesByNameProvider;
 import com.intellij.debugger.jdi.MethodBytecodeUtil;
 import com.intellij.debugger.requests.Requestor;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -183,8 +182,7 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
                                                     @NotNull DebugProcessImpl debugProcess,
                                                     @NotNull ReferenceType classType,
                                                     boolean base) {
-    createRequestForPreparedClassEmulated(breakpoint, debugProcess, classType,
-                                          debugProcess.getVirtualMachineProxy().getClassesByNameProvider(), base);
+    createRequestForPreparedClassEmulated(breakpoint, debugProcess, classType, debugProcess.getVirtualMachineProxy().getClassesByNameProvider(), base);
   }
 
   static void createRequestForPreparedClassEmulated(@NotNull MethodBreakpointBase breakpoint,
@@ -208,8 +206,7 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
     }
     StreamEx<Method> methods = lambdaMethod != null
                                ? StreamEx.of(lambdaMethod)
-                               : breakpoint.matchingMethods(StreamEx.of(classType.methods()).filter(m -> base || !m.isAbstract()),
-                                                            debugProcess);
+                               : breakpoint.matchingMethods(StreamEx.of(classType.methods()).filter(m -> base || !m.isAbstract()), debugProcess);
     boolean found = false;
     for (Method method : methods) {
       found = true;
@@ -236,7 +233,6 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
         if (breakpoint.isWatchExit()) {
           MethodBytecodeUtil.visit(method, new MethodVisitor(Opcodes.API_VERSION) {
             int myLastLine = 0;
-
             @Override
             public void visitLineNumber(int line, Label start) {
               myLastLine = line;
@@ -300,7 +296,7 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
         }
       }
 
-      if (!hasMethod) {
+      if(!hasMethod) {
         debugProcess.getRequestsManager().setInvalid(
           this, JavaDebuggerBundle.message("error.invalid.breakpoint.method.not.found", classType.name())
         );
@@ -399,13 +395,13 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
   @Override
   public String getDisplayName() {
     final @Nls StringBuilder buffer = new StringBuilder();
-    if (isValid()) {
+    if(isValid()) {
       final String className = getClassName();
       final boolean classNameExists = className != null && className.length() > 0;
       if (classNameExists) {
         buffer.append(className);
       }
-      if (getMethodName() != null) {
+      if(getMethodName() != null) {
         if (classNameExists) {
           buffer.append(".");
         }
@@ -472,7 +468,7 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
       }
 
       final PsiIdentifier identifier = method.getNameIdentifier();
-      int methodNameOffset = identifier != null ? identifier.getTextOffset() : methodOffset;
+      int methodNameOffset = identifier != null? identifier.getTextOffset() : methodOffset;
       final MethodDescriptor res =
         new MethodDescriptor();
       res.methodName = JVMNameUtil.getJVMMethodName(method);
@@ -502,13 +498,11 @@ public class MethodBreakpoint extends BreakpointWithHighlighter<JavaMethodBreakp
     super.readExternal(breakpointNode);
     try {
       getProperties().WATCH_ENTRY = Boolean.parseBoolean(JDOMExternalizerUtil.readField(breakpointNode, "WATCH_ENTRY"));
-    }
-    catch (Exception ignored) {
+    } catch (Exception ignored) {
     }
     try {
       getProperties().WATCH_EXIT = Boolean.parseBoolean(JDOMExternalizerUtil.readField(breakpointNode, "WATCH_EXIT"));
-    }
-    catch (Exception ignored) {
+    } catch (Exception ignored) {
     }
   }
 
