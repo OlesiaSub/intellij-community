@@ -1595,17 +1595,6 @@ public abstract class DebugProcessImpl extends UserDataHolderBase implements Deb
     return null;
   }
 
-  public ReferenceType setVisible(Value classReference, ClassLoaderReference classLoader) {
-    if (classReference instanceof ClassObjectReference) {
-      ReferenceType refType = ((ClassObjectReference)classReference).reflectedType();
-      if (classLoader instanceof ClassLoaderReferenceImpl) {
-        ((ClassLoaderReferenceImpl)classLoader).addVisible(refType);
-      }
-      return refType;
-    }
-    return null;
-  }
-
   public void logThreads() {
     if (LOG.isDebugEnabled()) {
       try {

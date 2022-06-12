@@ -55,6 +55,7 @@ internal class BreakpointCreator(
                 val comment = fileText
                     .substring(document.getLineStartOffset(commentLine), document.getLineEndOffset(commentLine))
                     .trim()
+
                 when {
                     @Suppress("SpellCheckingInspection") comment.startsWith("//FieldWatchpoint!") -> {
                         val javaBreakpoint = createBreakpointOfType(
@@ -196,6 +197,7 @@ internal class BreakpointCreator(
                 javaBreakpoint.setCondition(TextWithImportsImpl(CodeFragmentKind.EXPRESSION, condition))
                 suffix += " condition = $condition"
             }
+
             BreakpointManager.addBreakpoint(javaBreakpoint)
             logger("LineBreakpoint created at ${file.virtualFile.name}:${lineIndex + 1}$suffix")
         }
