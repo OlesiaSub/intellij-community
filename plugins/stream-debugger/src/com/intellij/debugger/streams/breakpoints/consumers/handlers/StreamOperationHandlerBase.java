@@ -9,7 +9,8 @@ import java.util.Map;
 public class StreamOperationHandlerBase {
   public static Object[] basicPeekResultProcessing(int index) {
     Map<Integer, Object> beforeMap = PeekConsumer.peekArray[index - 1];
-    Map<Integer, Object> afterMap = (index == PeekConsumer.peekArray.length ? new HashMap<>(beforeMap.size()) : PeekConsumer.peekArray[index]);
+    Map<Integer, Object> afterMap =
+      (index == PeekConsumer.peekArray.length ? new HashMap<>(beforeMap.size()) : PeekConsumer.peekArray[index]);
     return getBeforeAndAfterArrays(beforeMap, afterMap);
   }
 

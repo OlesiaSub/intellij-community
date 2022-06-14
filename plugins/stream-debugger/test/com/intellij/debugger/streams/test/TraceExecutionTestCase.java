@@ -156,6 +156,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
           return;
         }
         StreamTracer tracer;
+        //tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
         if (fileName.get().contains("Linked")) {
           tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
         }

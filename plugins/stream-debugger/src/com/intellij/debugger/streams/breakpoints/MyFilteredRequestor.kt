@@ -6,18 +6,19 @@ import com.intellij.debugger.engine.JavaStackFrame
 import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
-import com.intellij.debugger.impl.ClassLoadingUtils
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.debugger.ui.breakpoints.FilteredRequestorImpl
 import com.intellij.openapi.project.Project
 import com.sun.jdi.*
+import com.sun.jdi.event.ExceptionEvent
 import com.sun.jdi.event.LocatableEvent
 import com.sun.jdi.event.MethodExitEvent
-import com.sun.jdi.request.MethodExitRequest
+import com.sun.jdi.request.EventRequest
 
 class MyFilteredRequestor(project: Project,
                           private val stackFrame: JavaStackFrame,
-                          private val chain: StreamChain) : FilteredRequestorImpl(project) {
+                          private val streamChain: StreamChain,
+                          private val breakpointBasedStreamTracer: BreakpointBasedStreamTracer) : FilteredRequestorImpl(project) {
 
   private var methods: MutableSet<Method> = mutableSetOf()
   private val targetClassName = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
@@ -25,9 +26,10 @@ class MyFilteredRequestor(project: Project,
 
   companion object {
     var terminationCallReached = false
+    var reference: Value? = null
   }
 
-  lateinit var requests: MutableList<MethodExitRequest>
+  lateinit var requests: MutableList<EventRequest>
   private var toReturn: Boolean = false
   private var index = 0
   private var chainMethodIndex = 0
@@ -43,9 +45,12 @@ class MyFilteredRequestor(project: Project,
     val contextImpl = EvaluationContextImpl(action.suspendContext as SuspendContextImpl,
                                             (action.suspendContext as SuspendContextImpl).frameProxy)
     contextImpl.isAutoLoadClasses = true
-    contextImpl.classLoader
+    if (event is ExceptionEvent) {
+      handleExceptionEvent(event, contextImpl)
+      return true
+    }
     if (event is MethodExitEvent) {
-      if (methods.contains(event.method())) { // костыльно
+      if (methods.contains(event.method())) {
         methods.remove(event.method())
         return toReturn
       }
@@ -61,17 +66,17 @@ class MyFilteredRequestor(project: Project,
     println(event.method().name())
     val returnValue = event.returnValue()
     val methodName = event.method().name()
-    if (methodName.equals(chain.terminationCall.name) && event.method().arguments().size == chain.terminationCall.arguments.size) {
+    if (methodName.equals(streamChain.terminationCall.name) && event.method().arguments().size == streamChain.terminationCall.arguments.size) {
       initializeResultTypes(event, returnValue, contextImpl)
       requests.forEach { it.disable() }
       toReturn = true
     }
-    else if (event.method().name().equals(chain.terminationCall.name)) {
+    else if (event.method().name().equals(streamChain.terminationCall.name)) {
       return
     }
     else if (returnValue is ObjectReference
-             && ((chainMethodIndex < chain.intermediateCalls.size && methodName.equals(chain.intermediateCalls.get(chainMethodIndex).name))
-                 || (chainMethodIndex == chain.intermediateCalls.size && methodName.equals(chain.terminationCall.name))
+             && ((chainMethodIndex < streamChain.intermediateCalls.size && methodName.equals(streamChain.intermediateCalls.get(chainMethodIndex).name))
+                 || (chainMethodIndex == streamChain.intermediateCalls.size && methodName.equals(streamChain.terminationCall.name))
                  || methodName.equals("stream") || methodName.equals("of") || methodName.equals("intStream")
                  || methodName.equals("longStream") || methodName.equals("doubleStream"))) {
       if (initialized && ((methodName.equals("stream") || methodName.equals("of") || methodName.equals("intStream")
@@ -84,15 +89,7 @@ class MyFilteredRequestor(project: Project,
       }
       val targetClass = event.virtualMachine().classesByName(targetClassName)[0]
       if (!initialized) {
-        initialized = true;
-        if (targetClass is ClassType) {
-          debugProcessImpl.invokeMethod(contextImpl,
-                                        targetClass,
-                                        targetClass.methodsByName("init")[0],
-                                        listOf(event.virtualMachine().mirrorOf(chain.intermediateCalls.size + 1)),
-                                        ClassType.INVOKE_SINGLE_THREADED,
-                                        true)
-        }
+        initializePeekConsumer(targetClass, contextImpl, event)
       }
       val consumersArrayField = targetClass.fieldByName("consumersArray")
       val consumersArrayValue = targetClass.getValues(listOf(consumersArrayField))[consumersArrayField]
@@ -120,6 +117,34 @@ class MyFilteredRequestor(project: Project,
     }
   }
 
+  private fun initializePeekConsumer(targetClass: ReferenceType, contextImpl: EvaluationContextImpl, event: MethodExitEvent) {
+    initialized = true
+    if (targetClass is ClassType) {
+      debugProcessImpl.invokeMethod(contextImpl,
+                                    targetClass,
+                                    targetClass.methodsByName("init")[0],
+                                    listOf(event.virtualMachine().mirrorOf(streamChain.intermediateCalls.size + 1)),
+                                    ClassType.INVOKE_SINGLE_THREADED,
+                                    true)
+    }
+  }
+
+  private fun handleExceptionEvent(event: ExceptionEvent, contextImpl: EvaluationContextImpl) {
+    initializeResultTypes(event, event.exception(), contextImpl)
+    requests.forEach { it.disable() }
+    toReturn = true
+    val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer")[0]
+    breakpointBasedStreamTracer.getTraceResultsForStreamChain(stackFrame)
+    if (loadedClass is ClassType) {
+      reference = loadedClass.invokeMethod(
+        stackFrame.stackFrameProxy.threadProxy().threadReference,
+        loadedClass.methodsByName("getResult")[0],
+        listOf(),
+        0)
+    }
+    debugProcessImpl.requestsManager.deleteRequest(this)
+  }
+
   private fun invokeSequential(returnValue: ObjectReference, contextImpl: EvaluationContextImpl) =
     debugProcessImpl.invokeInstanceMethod(contextImpl,
                                           returnValue,
@@ -129,8 +154,15 @@ class MyFilteredRequestor(project: Project,
                                           true)
 
 
-  private fun getParametersList(returnValue: Value, vm: VirtualMachine): MutableList<ArrayReference?> {
+  private fun getParametersList(returnValue: Value?, vm: VirtualMachine): MutableList<ArrayReference?> {
     val classes: List<ReferenceType>
+    if (returnValue!!.type().signature().equals("Ljava/lang/RuntimeException;"))  {
+      classes = vm.classesByName("java.lang.Throwable[]")
+      val arrayType = classes[0] as ArrayType
+      val arrayInstance = arrayType.newInstance(1)
+      arrayInstance.setValue(0, returnValue)
+      return mutableListOf(arrayInstance)
+    }
     when (returnValue) {
       is IntegerValue -> {
         classes = vm.classesByName("int[]")
@@ -163,8 +195,7 @@ class MyFilteredRequestor(project: Project,
         classes = vm.classesByName("java.lang.Object[]")
       }
       else -> {
-        println("ELSE") // todo обработать
-        classes = listOf()
+        classes = mutableListOf()
       }
     }
     if (classes.size != 1 || classes[0] !is ArrayType) {
@@ -176,7 +207,7 @@ class MyFilteredRequestor(project: Project,
     return mutableListOf(arrayInstance)
   }
 
-  private fun initializeResultTypes(event: MethodExitEvent, returnValue: Value, contextImpl: EvaluationContextImpl) {
+  private fun initializeResultTypes(event: LocatableEvent, returnValue: Value?, contextImpl: EvaluationContextImpl) {
     terminationCallReached = true
     index++
     val vm = event.virtualMachine()

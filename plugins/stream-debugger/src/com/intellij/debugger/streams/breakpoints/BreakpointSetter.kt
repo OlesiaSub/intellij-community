@@ -9,14 +9,14 @@ import com.intellij.debugger.impl.PrioritizedTask
 import com.intellij.debugger.settings.DebuggerSettings
 import com.intellij.debugger.streams.wrapper.StreamChain
 import com.intellij.openapi.project.Project
-import com.intellij.xdebugger.XDebugSession
 import com.sun.jdi.VMDisconnectedException
-import com.sun.jdi.request.MethodExitRequest
+import com.sun.jdi.request.EventRequest
 
 
 class BreakpointSetter(private val project: Project,
                        private val stackFrame: JavaStackFrame,
-                       private val chain: StreamChain) {
+                       private val chain: StreamChain,
+                       private val breakpointBasedStreamTracer: BreakpointBasedStreamTracer) {
 
   private val classFilters = listOf("java.util.stream.ReferencePipeline",
                                     "java.util.stream.StreamSupport",
@@ -42,16 +42,19 @@ class BreakpointSetter(private val project: Project,
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
-          val myFilteredRequestor = MyFilteredRequestor(project, stackFrame, chain)
+          val myFilteredRequestor = MyFilteredRequestor(project, stackFrame, chain, breakpointBasedStreamTracer)
           myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_THREAD
-          val requests: MutableList<MethodExitRequest> = mutableListOf()
+          val requests: MutableList<EventRequest> = mutableListOf()
           classFilters.forEach {
             val methodExitRequest = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
             methodExitRequest.addClassFilter(it)
             requests.add(methodExitRequest)
             methodExitRequest.enable()
           }
+          val d = process.requestsManager.createExceptionRequest(myFilteredRequestor, null, true, true)
+          d.enable()
           myFilteredRequestor.requests = requests
+          myFilteredRequestor.requests.add(d)
         }
       })
     }

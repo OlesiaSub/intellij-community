@@ -32,12 +32,11 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
   override fun trace(@NotNull chain: StreamChain, @NotNull callback: TracingCallback) {
     streamChain = chain
     val stackFrame = (mySession.currentStackFrame as JavaStackFrame)
-    val breakpointSetter = BreakpointSetter(mySession.project, stackFrame, chain)
+    val breakpointSetter = BreakpointSetter(mySession.project, stackFrame, chain, this)
     val contextImpl = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl, stackFrame.stackFrameProxy)
     val classLoadingUtil = MyClassLoadingUtil(contextImpl, (stackFrame.descriptor.debugProcess as DebugProcessImpl), stackFrame)
     loadOperationsClasses(classLoadingUtil)
     MyFilteredRequestor.terminationCallReached = false
-    val className = "com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer"
     val returnedToFile = AtomicBoolean(false)
     breakpointSetter.setRequest()
     val runnable = {
@@ -51,7 +50,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
           if (!returnedToFile.get()) {
             if (MyFilteredRequestor.terminationCallReached) {
               MyFilteredRequestor.terminationCallReached = false
-              val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
+              val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer")[0]
               val debugProcess = stackFrame.descriptor.debugProcess as DebugProcessImpl
               debugProcess.managerThread.schedule(object : DebuggerContextCommandImpl(debugProcess.debuggerContext,
                                                                                       stackFrame.stackFrameProxy.threadProxy()) {
@@ -78,6 +77,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
             }
           }
           else {
+            if (reference == null) reference = MyFilteredRequestor.reference
             if (reference is ArrayReference && reference != null) {
               processParallelStreamCall()
               interpretTraceResult(reference as ArrayReference, callback)
@@ -101,7 +101,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
       myResultInterpreter.interpret(streamChain, reference)
     }
     catch (t: Throwable) {
-      // todo callback.evaluationFailed
+      // todo callback.evaluationFailed?
       throw t;
     }
     val context = EvaluationContextImpl(mySession.suspendContext as SuspendContextImpl,
@@ -122,8 +122,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
           loadHandlerClass(classLoadingUtil, HandlerAssigner.intermediateHandlersByName.get(streamCall.name).toString())
         }
         else {
-          println(streamCall.name)
-          println("беда")
+          println("no such handler " + streamCall.name)
         }
       }
     }
@@ -131,8 +130,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
       loadHandlerClass(classLoadingUtil, HandlerAssigner.terminalHandlersByName.get(streamChain.terminationCall.name).toString())
     }
     else {
-      println(streamChain.terminationCall.name)
-      println("беда terminal")
+      println("no such terminal handler name " + streamChain.terminationCall.name)
     }
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.PeekConsumer", "PeekConsumer.class")
   }
@@ -144,7 +142,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     classLoadingUtil.loadClassByName(nClassName, "$className.class")
   }
 
-  private fun getTraceResultsForStreamChain(@NotNull stackFrame: JavaStackFrame) {
+  fun getTraceResultsForStreamChain(@NotNull stackFrame: JavaStackFrame) {
     var index = 0
     streamChain.intermediateCalls.forEachIndexed { currentIndex, streamCall ->
       run {
@@ -156,23 +154,20 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
         }
       }
     }
-    val streamCall = streamChain.terminationCall
-    if (HandlerAssigner.terminalHandlersByName.containsKey(streamCall.name)) {
-      invokeOperationResultSetter(stackFrame, if (streamChain.intermediateCalls.size == 0) 0 else index + 1,
-                                  HandlerAssigner.terminalHandlersByName.get(streamCall.name).toString())
+    val streamCall = streamChain.terminationCall.name
+    if (HandlerAssigner.terminalHandlersByName.containsKey(streamCall)) {
+      invokeOperationResultSetter(stackFrame,
+                                  if (streamChain.intermediateCalls.size == 0) 0 else index + 1,
+                                  HandlerAssigner.terminalHandlersByName.get(streamCall).toString())
     } else {
-      invokeOperationResultSetter(stackFrame, if (streamChain.intermediateCalls.size == 0) 0 else index + 1, "BasicHandler")
+      invokeOperationResultSetter(stackFrame,
+                                  if (streamChain.intermediateCalls.size == 0) 0 else index + 1,
+                                  "BasicHandler")
     }
   }
 
   private fun invokeOperationResultSetter(@NotNull stackFrame: JavaStackFrame, index: Int, handlerClassName: String) {
-    val className: String
-    try {
-      className = handlerClassName.substring(0, handlerClassName.lastIndexOf('@'))
-    }
-    catch (e: Exception) {
-      return
-    }
+    val className = handlerClassName.substring(0, handlerClassName.lastIndexOf('@'))
     val loadedClass = stackFrame.stackFrameProxy.virtualMachine.classesByName(className)[0]
     val method = loadedClass!!.methodsByName("setOperationResult")[0]
     if (loadedClass is ClassType) {

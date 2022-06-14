@@ -118,9 +118,10 @@ public final class TraceStreamAction extends AnAction {
     final TraceExpressionBuilder expressionBuilder = provider.getExpressionBuilder(project);
     final TraceResultInterpreterImpl resultInterpreter =
       new TraceResultInterpreterImpl(provider.getLibrarySupport().getInterpreterFactory());
-    final StreamTracer tracer = tracerType == 0
+    StreamTracer tracer = tracerType == 0
                                 ? new BreakpointBasedStreamTracer(session, resultInterpreter)
                                 : new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
+    //tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
     tracer.trace(chain, new TracingCallback() {
       @Override
       public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {

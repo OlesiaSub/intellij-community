@@ -22,7 +22,7 @@ public class PeekConsumer {
 
   public static void init(int n) {
     time = new AtomicInteger();
-    streamResult = null;
+    streamResult = "undefined";
     info = new Object[n];
     peekArray = new LinkedHashMap[n];
     for (int i = 0; i < n; i++) {
@@ -46,7 +46,6 @@ public class PeekConsumer {
 
   public static void setReturnValue(Object value) {
     streamResult = value;
-    if (streamResult == null) streamResult = new Object[1];
   }
 
   public static Object getResult() {

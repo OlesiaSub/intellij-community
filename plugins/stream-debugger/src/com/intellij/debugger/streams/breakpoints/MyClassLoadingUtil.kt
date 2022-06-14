@@ -17,8 +17,7 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
                          private val process: DebugProcessImpl,
                          private val stackFrame: JavaStackFrame) {
 
-  lateinit var classLoader: ClassLoaderReference
-  var fst = true // todo нормально сделать
+  val classLoader: ClassLoaderReference = ClassLoadingUtils.getClassLoader(contextImpl, process)
   val loadedClasses: MutableSet<String> = mutableSetOf()
 
   @Throws(InvocationException::class, ClassNotLoadedException::class, IncompatibleThreadStateException::class,
@@ -37,10 +36,6 @@ class MyClassLoadingUtil(private val contextImpl: EvaluationContextImpl,
         }
 
         override fun threadAction(suspendContext: SuspendContextImpl) {
-          if (fst) {
-            fst = false
-            classLoader = ClassLoadingUtils.getClassLoader(contextImpl, process)
-          }
           val bytes = ClassesExtractor().extractConsumer(classNameToExtract)
           ClassLoadingUtils.defineClass(className, bytes, contextImpl, process, classLoader)
           val debugProcess = contextImpl.debugProcess
