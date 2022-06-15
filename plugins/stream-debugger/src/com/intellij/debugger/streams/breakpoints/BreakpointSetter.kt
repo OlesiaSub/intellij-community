@@ -52,6 +52,8 @@ class BreakpointSetter(private val project: Project,
             methodExitRequest.enable()
           }
           val exceptionRequest = process.requestsManager.createExceptionRequest(myFilteredRequestor, null, true, true)
+          //exceptionRequest.addClassFilter(stackFrame.descriptor.location!!.declaringType())
+          exceptionRequest.addThreadFilter(stackFrame.stackFrameProxy.threadProxy().threadReference)
           exceptionRequest.enable()
           myFilteredRequestor.requests = requests
           myFilteredRequestor.requests.add(exceptionRequest)
