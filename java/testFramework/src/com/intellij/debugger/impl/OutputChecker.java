@@ -163,11 +163,6 @@ public class OutputChecker {
         else if (actual.length() > len) {
           System.out.println("Rest from actual text is: \"" + actual.substring(len) + "\"");
         }
-        // mine!
-        actual = actual.replaceAll("\nProcess finished with exit code -1\n" +
-                                   "Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'",
-                                   "Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'\n\n" +
-                                   "Process finished with exit code -1");
         assertEquals(originalText, actual);
       }
     }

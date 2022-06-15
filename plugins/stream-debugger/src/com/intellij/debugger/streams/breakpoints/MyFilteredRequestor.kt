@@ -34,7 +34,6 @@ class MyFilteredRequestor(project: Project,
   private var index = 0
   private var chainMethodIndex = 0
   private var initialized = false
-  private var streamExInitialized = false
 
   @Override
   override fun processLocatableEvent(action: SuspendContextCommandImpl, event: LocatableEvent): Boolean {
@@ -109,7 +108,7 @@ class MyFilteredRequestor(project: Project,
                                                                    ClassType.INVOKE_SINGLE_THREADED,
                                                                    true)
         event.thread().forceEarlyReturn(newReturnValue)
-        (debugProcessImpl).session.resume()
+        //(debugProcessImpl).session.resume()
       }
       catch (e: Exception) {
         e.printStackTrace()

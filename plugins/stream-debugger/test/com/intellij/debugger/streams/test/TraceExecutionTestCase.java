@@ -201,8 +201,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
         println("Exception caught: " + t + ", " + t.getMessage(), ProcessOutputTypes.SYSTEM);
       }
       finally {
-        session.stop();
-        //resume();
+        resume();
       }
     }
 

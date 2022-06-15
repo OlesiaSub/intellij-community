@@ -9,4 +9,4 @@ Evaluation failed
 Evaluation failed: java.lang.RuntimeException exception thrown: My exception message
 Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
 
-Process finished with exit code -1
+Process finished with exit code 0

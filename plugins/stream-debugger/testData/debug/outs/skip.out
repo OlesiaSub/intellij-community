@@ -25,4 +25,4 @@ mappings for toArray
     4 <- 5
 Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
 
-Process finished with exit code -1
+Process finished with exit code 0

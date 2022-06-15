@@ -43,7 +43,7 @@ class BreakpointSetter(private val project: Project,
         override fun threadAction(suspendContext: SuspendContextImpl) {
           //ApplicationManager.getApplication().assertIsDispatchThread()
           val myFilteredRequestor = MyFilteredRequestor(project, stackFrame, chain, breakpointBasedStreamTracer)
-          myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_THREAD
+          //myFilteredRequestor.SUSPEND_POLICY = DebuggerSettings.SUSPEND_THREAD
           val requests: MutableList<EventRequest> = mutableListOf()
           classFilters.forEach {
             val methodExitRequest = process.requestsManager.createMethodExitRequest(myFilteredRequestor)
@@ -51,10 +51,10 @@ class BreakpointSetter(private val project: Project,
             requests.add(methodExitRequest)
             methodExitRequest.enable()
           }
-          val d = process.requestsManager.createExceptionRequest(myFilteredRequestor, null, true, true)
-          d.enable()
+          val exceptionRequest = process.requestsManager.createExceptionRequest(myFilteredRequestor, null, true, true)
+          exceptionRequest.enable()
           myFilteredRequestor.requests = requests
-          myFilteredRequestor.requests.add(d)
+          myFilteredRequestor.requests.add(exceptionRequest)
         }
       })
     }

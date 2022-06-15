@@ -25,4 +25,4 @@ mappings for findFirst
     4 <- 2147483646
 Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
 
-Process finished with exit code -1
+Process finished with exit code 0

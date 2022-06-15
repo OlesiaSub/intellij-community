@@ -45,7 +45,12 @@ public class PeekConsumer {
   }
 
   public static void setReturnValue(Object value) {
+
     streamResult = value;
+    if (streamResult == null) {
+      streamResult = new Object[1];
+    }
+
   }
 
   public static Object getResult() {

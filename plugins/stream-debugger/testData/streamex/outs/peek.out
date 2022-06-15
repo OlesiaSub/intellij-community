@@ -94,7 +94,7 @@ mappings for count
     empty
 Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
 
-Process finished with exit code -1
+Process finished with exit code 0
 111(1 -> 1)
 24(2 -> 4)
 339(3 -> 9)
