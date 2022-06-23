@@ -4,6 +4,7 @@ package com.intellij.debugger.streams.test;
 import com.intellij.debugger.DebuggerTestCase;
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl;
 import com.intellij.debugger.impl.OutputChecker;
+import com.intellij.debugger.streams.breakpoints.BreakpointBasedStreamTracer;
 import com.intellij.debugger.streams.lib.LibrarySupportProvider;
 import com.intellij.debugger.streams.lib.impl.StandardLibrarySupportProvider;
 import com.intellij.debugger.streams.psi.DebuggerPositionResolver;
@@ -32,7 +33,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
@@ -68,7 +71,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
   protected String getTestAppPath() {
     return new File(PluginPathManager.getPluginHomePath("stream-debugger") + "/testData/debug/").getAbsolutePath();
   }
-  
+
   @Override
   protected void tearDown() throws Exception {
     try {
@@ -121,7 +124,7 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
       @Override
       public void sessionPaused() {
         if (completed.getAndSet(true)) {
-          resume();
+          //resume();
           return;
         }
         try {
@@ -139,9 +142,13 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
 
       private void sessionPausedImpl() {
         printContext(getDebugProcess().getDebuggerContext());
+        AtomicReference<String> fileName = new AtomicReference<>("");
         final StreamChain chain = ApplicationManager.getApplication().runReadAction((Computable<StreamChain>)() -> {
           final PsiElement elementAtBreakpoint = positionResolver.getNearestElementToBreakpoint(session);
           final List<StreamChain> chains = elementAtBreakpoint == null ? null : chainBuilder.build(elementAtBreakpoint);
+          if (elementAtBreakpoint != null) {
+            fileName.set(elementAtBreakpoint.getContainingFile().getName());
+          }
           return chains == null || chains.isEmpty() ? null : chainSelector.select(chains);
         });
 
@@ -149,11 +156,20 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
           complete(null, null, null, FailureReason.CHAIN_CONSTRUCTION);
           return;
         }
-
-        new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter).trace(chain, new TracingCallback() {
+        StreamTracer tracer;
+        //tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
+        if (fileName.get().contains("Linked")) {
+          tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
+        }
+        else {
+          tracer = new BreakpointBasedStreamTracer(session, resultInterpreter);
+        }
+        tracer.trace(chain, new TracingCallback() {
           @Override
           public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {
             complete(chain, result, null, null);
+            long millis = System.currentTimeMillis() - EvaluateExpressionTracer.time;
+            System.out.println("TIME " + millis);
           }
 
           @Override
@@ -167,36 +183,38 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
             complete(chain, null, message, FailureReason.COMPILATION);
           }
         });
-      }
+    }
 
-      private void complete(@Nullable StreamChain chain,
-                            @Nullable TracingResult result,
-                            @Nullable String error,
-                            @Nullable FailureReason errorReason) {
-        try {
-          if (error != null) {
-            assertNotNull(errorReason);
-            assertNotNull(chain);
-            handleError(chain, error, errorReason);
-          }
-          else {
-            assertNull(errorReason);
-            handleSuccess(chain, result, isResultNull);
-          }
+    private void complete (@Nullable StreamChain chain,
+      @Nullable TracingResult result,
+      @Nullable String error,
+      @Nullable FailureReason errorReason){
+      try {
+        if (error != null) {
+          assertNotNull(errorReason);
+          assertNotNull(chain);
+          handleError(chain, error, errorReason);
         }
-        catch (Throwable t) {
-          println("Exception caught: " + t + ", " + t.getMessage(), ProcessOutputTypes.SYSTEM);
-        }
-        finally {
-          resume();
+        else {
+          assertNull(errorReason);
+          handleSuccess(chain, result, isResultNull);
         }
       }
+      catch (Throwable t) {
+        println("Exception caught: " + t + ", " + t.getMessage(), ProcessOutputTypes.SYSTEM);
+      }
+      finally {
+        resume();
+      }
+    }
 
-      private void resume() {
-        ApplicationManager.getApplication().invokeLater(session::resume);
-      }
-    }, getTestRootDisposable());
-  }
+    private void resume () {
+      ApplicationManager.getApplication().invokeAndWait(session::resume);
+    }
+  },
+
+  getTestRootDisposable());
+}
 
   @SuppressWarnings("WeakerAccess")
   protected DebuggerPositionResolver getPositionResolver() {
@@ -313,9 +331,9 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
     }
   }
 
-  private enum Direction {
-    FORWARD, BACKWARD
-  }
+private enum Direction {
+  FORWARD, BACKWARD
+}
 
   private static void checkChain(@NotNull ResolvedStreamChain chain) {
     final List<ResolvedStreamCall.Intermediate> intermediates = chain.getIntermediateCalls();
@@ -397,17 +415,17 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
     return str.isEmpty() ? "nothing" : str;
   }
 
-  protected enum FailureReason {
-    COMPILATION, EVALUATION, CHAIN_CONSTRUCTION
-  }
+protected enum FailureReason {
+  COMPILATION, EVALUATION, CHAIN_CONSTRUCTION
+}
 
-  @FunctionalInterface
-  protected interface ChainSelector {
-    @NotNull
-    StreamChain select(@NotNull List<StreamChain> chains);
+@FunctionalInterface
+protected interface ChainSelector {
+  @NotNull
+  StreamChain select(@NotNull List<StreamChain> chains);
 
-    static ChainSelector byIndex(int index) {
-      return chains -> chains.get(index);
-    }
+  static ChainSelector byIndex(int index) {
+    return chains -> chains.get(index);
   }
+}
 }

@@ -2,7 +2,10 @@
 package com.intellij.debugger.streams.trace;
 
 import com.intellij.debugger.streams.wrapper.StreamChain;
+import com.intellij.psi.PsiMethod;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 /**
  * @author Vitaliy.Bibaev

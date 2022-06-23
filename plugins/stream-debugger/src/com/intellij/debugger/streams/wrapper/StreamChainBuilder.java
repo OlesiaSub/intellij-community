@@ -2,6 +2,7 @@
 package com.intellij.debugger.streams.wrapper;
 
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiMethod;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -21,4 +22,7 @@ public interface StreamChainBuilder {
 
   @NotNull
   List<StreamChain> build(@NotNull PsiElement startElement);
+
+  @NotNull
+  default List<List<PsiMethod>> buildReferences(@NotNull PsiElement startElement) { return null; }
 }

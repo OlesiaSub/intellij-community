@@ -2,6 +2,7 @@
 package com.intellij.debugger.streams.action;
 
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl;
+import com.intellij.debugger.streams.breakpoints.BreakpointBasedStreamTracer;
 import com.intellij.debugger.streams.diagnostic.ex.TraceCompilationException;
 import com.intellij.debugger.streams.diagnostic.ex.TraceEvaluationException;
 import com.intellij.debugger.streams.lib.LibrarySupportProvider;
@@ -25,6 +26,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiMethod;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XSourcePosition;
@@ -33,6 +35,7 @@ import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -70,9 +73,10 @@ public final class TraceStreamAction extends AnAction {
       }
     }
   }
-
+public static long time = 0;
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
+    time = System.currentTimeMillis();
     XDebugSession session = DebuggerUIUtil.getSession(e);
     LibrarySupportProvider.EP_NAME.getExtensionList();
     XSourcePosition position = session == null ? null : session.getCurrentPosition();
@@ -82,15 +86,15 @@ public final class TraceStreamAction extends AnAction {
       LOG.info("element at cursor not found");
       return;
     }
-
     List<ChainResolver.StreamChainWithLibrary> chains = CHAIN_RESOLVER.getChains(element);
+    List<List<PsiMethod>> chainReferences = CHAIN_RESOLVER.getChainsReferences(element);
     if (chains.isEmpty()) {
       LOG.warn("stream chain is not built");
       return;
     }
 
     if (chains.size() == 1) {
-      runTrace(chains.get(0).chain, chains.get(0).provider, session);
+      runTrace(chains.get(0).chain, chains.get(0).provider, session, 0);
     }
     else {
       Project project = session.getProject();
@@ -100,18 +104,25 @@ public final class TraceStreamAction extends AnAction {
       ApplicationManager.getApplication()
         .invokeLater(() -> {
           new MyStreamChainChooser(editor).show(ContainerUtil.map(chains, StreamChainOption::new),
-                                                provider -> runTrace(provider.chain, provider.provider, session));
+                                                provider -> runTrace(provider.chain, provider.provider, session, 1));
         });
     }
   }
 
-  private static void runTrace(@NotNull StreamChain chain, @NotNull LibrarySupportProvider provider, @NotNull XDebugSession session) {
+  private static void runTrace(@NotNull StreamChain chain,
+                               @NotNull LibrarySupportProvider provider,
+                               @NotNull XDebugSession session,
+                               int tracerType) { // 0 -> BP based, 1 -> EE based
     final EvaluationAwareTraceWindow window = new EvaluationAwareTraceWindow(session, chain);
     ApplicationManager.getApplication().invokeLater(window::show);
     final Project project = session.getProject();
     final TraceExpressionBuilder expressionBuilder = provider.getExpressionBuilder(project);
-    final TraceResultInterpreterImpl resultInterpreter = new TraceResultInterpreterImpl(provider.getLibrarySupport().getInterpreterFactory());
-    final StreamTracer tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
+    final TraceResultInterpreterImpl resultInterpreter =
+      new TraceResultInterpreterImpl(provider.getLibrarySupport().getInterpreterFactory());
+    StreamTracer tracer = tracerType == 0
+                                ? new BreakpointBasedStreamTracer(session, resultInterpreter)
+                                : new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
+    //tracer = new EvaluateExpressionTracer(session, expressionBuilder, resultInterpreter);
     tracer.trace(chain, new TracingCallback() {
       @Override
       public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {

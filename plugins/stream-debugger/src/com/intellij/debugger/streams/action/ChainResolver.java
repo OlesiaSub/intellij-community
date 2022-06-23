@@ -10,6 +10,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.extensions.impl.ExtensionProcessingHelper;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiMethod;
 import com.intellij.util.concurrency.SequentialTaskExecutor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -80,6 +81,25 @@ class ChainResolver {
     });
 
     return chains;
+  }
+
+  // mine
+  public List<List<PsiMethod>> getChainsReferences(@NotNull PsiElement elementAtDebugger) {
+    if (!mySearchResult.isSuitableFor(elementAtDebugger) || !mySearchResult.chainsStatus.equals(ChainStatus.FOUND)) {
+      LOG.error("Cannot build chains references: " + mySearchResult.chainsStatus);
+      return Collections.emptyList();
+    }
+    List<List<PsiMethod>> chainReferences = new ArrayList<>();
+    String elementLanguageId = elementAtDebugger.getLanguage().getID();
+    LibrarySupportProvider.EP_NAME.forEachExtensionSafe(provider -> {
+      if (provider.getLanguageId().equals(elementLanguageId)) {
+        StreamChainBuilder chainBuilder = provider.getChainBuilder();
+        if (chainBuilder.isChainExists(elementAtDebugger)) {
+          chainReferences.addAll(chainBuilder.buildReferences(elementAtDebugger));
+        }
+      }
+    });
+    return chainReferences;
   }
 
   private static @NotNull List<LibrarySupportProvider> forLanguage(@NotNull Language language) {

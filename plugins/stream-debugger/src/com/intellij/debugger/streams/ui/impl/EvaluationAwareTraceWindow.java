@@ -4,6 +4,7 @@ package com.intellij.debugger.streams.ui.impl;
 import com.intellij.CommonBundle;
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl;
 import com.intellij.debugger.streams.StreamDebuggerBundle;
+import com.intellij.debugger.streams.action.TraceStreamAction;
 import com.intellij.debugger.streams.resolve.ResolvedStreamCall;
 import com.intellij.debugger.streams.resolve.ResolvedStreamChain;
 import com.intellij.debugger.streams.trace.*;
@@ -132,7 +133,7 @@ public class EvaluationAwareTraceWindow extends DialogWrapper {
       final StreamTracesMappingView view = new StreamTracesMappingView(context, previous, current);
       tab.setContent(view, BorderLayout.CENTER);
     }
-
+    
     final TraceElement result = resolvedTrace.getResult();
     final MyPlaceholder resultTab = myTabContents.get(myTabContents.size() - 1);
 
@@ -154,6 +155,8 @@ public class EvaluationAwareTraceWindow extends DialogWrapper {
     myFlatContent.setContent(flatView, BorderLayout.CENTER);
     myCenterPane.revalidate();
     myCenterPane.repaint();
+    long t = System.currentTimeMillis() - TraceStreamAction.time;
+    System.out.println("TIMEEEE " + t);
   }
 
   public void setFailMessage(@NotNull @Nls String reason) {
