@@ -62,6 +62,7 @@ class BreakpointSetter(private val project: Project,
     }
     catch (e: VMDisconnectedException) {
       println("Virtual Machine is disconnected.")
+
     }
     catch (e: Exception) {
       e.printStackTrace()

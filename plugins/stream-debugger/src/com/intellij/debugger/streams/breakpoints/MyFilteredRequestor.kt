@@ -62,7 +62,6 @@ class MyFilteredRequestor(project: Project,
   }
 
   private fun handleMethodExitEvent(event: MethodExitEvent, contextImpl: EvaluationContextImpl) {
-    println(event.method().name())
     val returnValue = event.returnValue()
     val methodName = event.method().name()
     if (methodName.equals(streamChain.terminationCall.name) && event.method().arguments().size == streamChain.terminationCall.arguments.size) {

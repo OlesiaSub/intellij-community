@@ -1,0 +1,19 @@
+LineBreakpoint created at DefaultInterfaceMethod.java:7
+!JDK_HOME!\bin\java -agentlib:jdwp=transport=dt_socket,address=!HOST_NAME!:!HOST_PORT!,suspend=y,server=n -Dfile.encoding=!FILE_ENCODING! -classpath !OUTPUT_PATH!;!RT_JAR! DefaultInterfaceMethod
+Connected to the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
+DefaultInterfaceMethod.java:7
+Stream.of(new MyClass(1.0), new MyClass(3.0), new MyClass(2.0))
+.max(MyInterface::compareTo)
+max
+    before: 1,2,3
+    after: 2147483646
+mappings for max
+  direct:
+    1 -> nothing
+    2 -> 2147483646
+    3 -> nothing
+  reverse:
+    2 <- 2147483646
+Disconnected from the target VM, address: '!HOST_NAME!:PORT_NAME!', transport: 'socket'
+
+Process finished with exit code 0

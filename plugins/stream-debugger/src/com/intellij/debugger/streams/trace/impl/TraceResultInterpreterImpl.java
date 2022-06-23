@@ -35,6 +35,7 @@ public class TraceResultInterpreterImpl implements TraceResultInterpreter {
     final ArrayReference result = (ArrayReference)resultArray.getValue(1);
     final Value streamResult = result.getValue(0);
     final Value time = resultArray.getValue(2);
+    System.out.println(((ArrayReference) time).getValue(0));
     logTime(time);
     final List<TraceInfo> trace = getTrace(chain, info);
     return new TracingResultImpl(chain, TraceElementImpl.ofResultValue(streamResult), trace, isException(result));

@@ -25,7 +25,7 @@ public class EvaluateExpressionTracer implements StreamTracer {
   private final XDebugSession mySession;
   private final TraceExpressionBuilder myExpressionBuilder;
   private final TraceResultInterpreter myResultInterpreter;
-
+public static long time = 0;
   public EvaluateExpressionTracer(@NotNull XDebugSession session,
                                   @NotNull TraceExpressionBuilder expressionBuilder,
                                   @NotNull TraceResultInterpreter interpreter) {
@@ -36,8 +36,9 @@ public class EvaluateExpressionTracer implements StreamTracer {
 
   @Override
   public void trace(@NotNull StreamChain chain, @NotNull TracingCallback callback) {
+    time = System.currentTimeMillis();
     final String streamTraceExpression = myExpressionBuilder.createTraceExpression(chain);
-    System.out.println(streamTraceExpression);
+    //System.out.println(streamTraceExpression);
     final XStackFrame stackFrame = mySession.getCurrentStackFrame();
     final XDebuggerEvaluator evaluator = mySession.getDebugProcess().getEvaluator();
     if (stackFrame != null && evaluator != null) {

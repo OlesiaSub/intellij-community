@@ -73,9 +73,10 @@ public final class TraceStreamAction extends AnAction {
       }
     }
   }
-
+public static long time = 0;
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
+    time = System.currentTimeMillis();
     XDebugSession session = DebuggerUIUtil.getSession(e);
     LibrarySupportProvider.EP_NAME.getExtensionList();
     XSourcePosition position = session == null ? null : session.getCurrentPosition();

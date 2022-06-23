@@ -163,6 +163,7 @@ public class OutputChecker {
         else if (actual.length() > len) {
           System.out.println("Rest from actual text is: \"" + actual.substring(len) + "\"");
         }
+
         assertEquals(originalText, actual);
       }
     }

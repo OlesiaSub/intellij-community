@@ -33,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -167,6 +168,8 @@ public abstract class TraceExecutionTestCase extends DebuggerTestCase {
           @Override
           public void evaluated(@NotNull TracingResult result, @NotNull EvaluationContextImpl context) {
             complete(chain, result, null, null);
+            long millis = System.currentTimeMillis() - EvaluateExpressionTracer.time;
+            System.out.println("TIME " + millis);
           }
 
           @Override

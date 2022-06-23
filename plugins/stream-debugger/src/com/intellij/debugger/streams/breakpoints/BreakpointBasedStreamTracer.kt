@@ -9,6 +9,7 @@ import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
 import com.intellij.debugger.impl.PrioritizedTask
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.BasicHandler
 import com.intellij.debugger.streams.breakpoints.consumers.handlers.HandlerAssigner
+import com.intellij.debugger.streams.trace.EvaluateExpressionTracer
 import com.intellij.debugger.streams.trace.StreamTracer
 import com.intellij.debugger.streams.trace.TraceResultInterpreter
 import com.intellij.debugger.streams.trace.TracingCallback
@@ -30,6 +31,8 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
   private lateinit var streamChain: StreamChain
 
   override fun trace(@NotNull chain: StreamChain, @NotNull callback: TracingCallback) {
+
+    EvaluateExpressionTracer.time = System.currentTimeMillis()
     streamChain = chain
     val stackFrame = (mySession.currentStackFrame as JavaStackFrame)
     val breakpointSetter = BreakpointSetter(mySession.project, stackFrame, chain, this)
@@ -114,7 +117,7 @@ class BreakpointBasedStreamTracer(private val mySession: XDebugSession,
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.StreamOperationHandlerBase",
                                      "/com/intellij/debugger/streams/breakpoints/consumers/handlers/StreamOperationHandlerBase.class")
     classLoadingUtil.loadClassByName("com.intellij.debugger.streams.breakpoints.consumers.handlers.impl.terminal.match.MatchHandler",
-                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/impl/terminal/match/MatchHandler.class")
+                                     "/com/intellij/debugger/streams/breakpoints/consumers/handlers/impl/terminal/match/MatchHandler.class") // todo зачем оно тут
     loadHandlerClass(classLoadingUtil, BasicHandler().toString())
     streamChain.intermediateCalls.forEach { streamCall ->
       run {
